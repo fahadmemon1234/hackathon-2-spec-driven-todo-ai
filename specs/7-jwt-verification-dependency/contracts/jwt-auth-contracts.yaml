@@ -1,0 +1,162 @@
+# API Contracts: JWT Verification Dependency
+
+## Authentication Verification Endpoints
+
+### GET /health
+Health check endpoint to verify authentication system is operational
+- Response (200):
+  ```json
+  {
+    "status": "healthy",
+    "auth_system": "operational"
+  }
+  ```
+
+## Task Management Endpoints (Require JWT Authentication)
+
+### GET /api/tasks
+Get all tasks for the authenticated user
+- Headers: Authorization: Bearer {valid_jwt_token}
+- Query parameters:
+  - status: string (optional, values: "all", "pending", "completed", default: "all")
+  - sort: string (optional, values: "created", "title", default: "created")
+- Response (200):
+  ```json
+  {
+    "tasks": [
+      {
+        "id": "integer",
+        "user_id": "string",
+        "title": "string",
+        "description": "string | null",
+        "completed": "boolean",
+        "created_at": "datetime",
+        "updated_at": "datetime"
+      }
+    ]
+  }
+  ```
+- Response (401): Invalid or missing token
+- Response (403): Insufficient permissions (shouldn't occur with this implementation)
+
+### POST /api/tasks
+Create a new task
+- Headers: Authorization: Bearer {valid_jwt_token}
+- Request body:
+  ```json
+  {
+    "title": "string (1-200 chars)",
+    "description": "string (0-1000 chars) | null"
+  }
+  ```
+- Response (201):
+  ```json
+  {
+    "id": "integer",
+    "user_id": "string",
+    "title": "string",
+    "description": "string | null",
+    "completed": "boolean",
+    "created_at": "datetime",
+    "updated_at": "datetime"
+  }
+  ```
+- Response (401): Invalid or missing token
+- Response (403): Insufficient permissions
+- Response (422): Validation error (invalid input)
+
+### GET /api/tasks/{id}
+Get a specific task
+- Headers: Authorization: Bearer {valid_jwt_token}
+- Path parameter: id (integer)
+- Response (200):
+  ```json
+  {
+    "id": "integer",
+    "user_id": "string",
+    "title": "string",
+    "description": "string | null",
+    "completed": "boolean",
+    "created_at": "datetime",
+    "updated_at": "datetime"
+  }
+  ```
+- Response (401): Invalid or missing token
+- Response (403): Task doesn't belong to user
+- Response (404): Task not found
+
+### PUT /api/tasks/{id}
+Update a task
+- Headers: Authorization: Bearer {valid_jwt_token}
+- Path parameter: id (integer)
+- Request body:
+  ```json
+  {
+    "title": "string (1-200 chars)",
+    "description": "string (0-1000 chars) | null",
+    "completed": "boolean"
+  }
+  ```
+- Response (200):
+  ```json
+  {
+    "id": "integer",
+    "user_id": "string",
+    "title": "string",
+    "description": "string | null",
+    "completed": "boolean",
+    "created_at": "datetime",
+    "updated_at": "datetime"
+  }
+  ```
+- Response (401): Invalid or missing token
+- Response (403): Task doesn't belong to user
+- Response (404): Task not found
+
+### PATCH /api/tasks/{id}/complete
+Toggle task completion status
+- Headers: Authorization: Bearer {valid_jwt_token}
+- Path parameter: id (integer)
+- Response (200):
+  ```json
+  {
+    "id": "integer",
+    "user_id": "string",
+    "title": "string",
+    "description": "string | null",
+    "completed": "boolean",
+    "created_at": "datetime",
+    "updated_at": "datetime"
+  }
+  ```
+- Response (401): Invalid or missing token
+- Response (403): Task doesn't belong to user
+- Response (404): Task not found
+
+### DELETE /api/tasks/{id}
+Delete a task
+- Headers: Authorization: Bearer {valid_jwt_token}
+- Path parameter: id (integer)
+- Response (204): Task successfully deleted
+- Response (401): Invalid or missing token
+- Response (403): Task doesn't belong to user
+- Response (404): Task not found
+
+## JWT Verification Requirements
+
+### Token Format
+- Scheme: "Bearer" followed by a space and the JWT token
+- Example: `Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...`
+
+### Token Validation
+- Algorithm: HS256
+- Secret: Retrieved from BETTER_AUTH_SECRET environment variable
+- Claims verification:
+  - Expiration (exp) claim must not be in the past
+  - User ID must be present in either `payload.user.id` or `payload.id`
+  - Signature must match the shared secret
+
+### Error Responses
+- 401 Unauthorized: Missing, invalid, or expired token
+- 403 Forbidden: Valid token but insufficient permissions for requested resource
+- 422 Unprocessable Entity: Invalid request parameters

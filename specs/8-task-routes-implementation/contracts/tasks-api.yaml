@@ -1,0 +1,83 @@
+# API Contracts: Task Routes Implementation
+
+## Task Management Endpoints
+
+### POST /api/tasks
+Create a new task for the authenticated user
+- Headers: Authorization: Bearer {valid_jwt_token}
+- Request body:
+  ```json
+  {
+    "title": "string (1-200 chars)",
+    "description": "string (0-1000 chars) | null"
+  }
+  ```
+- Response (201):
+  ```json
+  {
+    "id": "integer",
+    "user_id": "string (UUID)",
+    "title": "string",
+    "description": "string | null",
+    "completed": "boolean",
+    "created_at": "datetime",
+    "updated_at": "datetime"
+  }
+  ```
+- Response (401): Invalid or missing token
+- Response (422): Validation error (invalid input)
+
+### GET /api/tasks
+Get all tasks for the authenticated user with optional filtering and sorting
+- Headers: Authorization: Bearer {valid_jwt_token}
+- Query parameters:
+  - status: string (optional, values: "all", "pending", "completed", default: all)
+  - sort: string (optional, values: "created", "title", default: "created")
+- Response (200):
+  ```json
+  [
+    {
+      "id": "integer",
+      "user_id": "string (UUID)",
+      "title": "string",
+      "description": "string | null",
+      "completed": "boolean",
+      "created_at": "datetime",
+      "updated_at": "datetime"
+    }
+  ]
+  ```
+- Response (401): Invalid or missing token
+- Response (422): Invalid query parameters
+
+## Authentication Requirements
+
+All task endpoints require a valid JWT token in the Authorization header:
+- Format: `Authorization: Bearer <token>`
+- Verification: Against BETTER_AUTH_SECRET using HS256 algorithm
+- User ID extraction: From payload.user.id or payload.id field
+- Access control: Users can only access/modify their own tasks
+
+## Error Responses
+
+### 401 Unauthorized
+- Occurs when: Missing, invalid, or expired JWT token
+- Response body:
+  ```json
+  {
+    "detail": "Invalid or expired token"
+  }
+  ```
+
+### 422 Validation Error
+- Occurs when: Invalid request parameters or body
+- Response body varies based on specific validation error
+
+### 404 Not Found
+- Occurs when: Requested resource doesn't exist
+- Response body:
+  ```json
+  {
+    "detail": "Resource not found"
+  }
+  ```

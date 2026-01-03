@@ -1,0 +1,171 @@
+# API Contracts: Luxury Todo Frontend
+
+## Authentication Endpoints
+
+### POST /api/auth/register
+Register a new user
+- Request body:
+  ```json
+  {
+    "email": "string",
+    "password": "string"
+  }
+  ```
+- Response (200):
+  ```json
+  {
+    "user": {
+      "id": "string",
+      "email": "string"
+    },
+    "token": "string"
+  }
+  ```
+
+### POST /api/auth/login
+Authenticate a user
+- Request body:
+  ```json
+  {
+    "email": "string",
+    "password": "string"
+  }
+  ```
+- Response (200):
+  ```json
+  {
+    "user": {
+      "id": "string",
+      "email": "string"
+    },
+    "token": "string"
+  }
+  ```
+
+### POST /api/auth/logout
+Logout the current user
+- Response (200):
+  ```json
+  {
+    "success": true
+  }
+  ```
+
+## Task Management Endpoints
+
+### GET /api/tasks
+Get all tasks for the authenticated user
+- Headers: Authorization: Bearer {token}
+- Response (200):
+  ```json
+  {
+    "tasks": [
+      {
+        "id": "string",
+        "title": "string",
+        "description": "string",
+        "completed": "boolean",
+        "createdAt": "string",
+        "updatedAt": "string",
+        "userId": "string"
+      }
+    ]
+  }
+  ```
+
+### POST /api/tasks
+Create a new task
+- Headers: Authorization: Bearer {token}
+- Request body:
+  ```json
+  {
+    "title": "string",
+    "description": "string"
+  }
+  ```
+- Response (201):
+  ```json
+  {
+    "task": {
+      "id": "string",
+      "title": "string",
+      "description": "string",
+      "completed": false,
+      "createdAt": "string",
+      "updatedAt": "string",
+      "userId": "string"
+    }
+  }
+  ```
+
+### GET /api/tasks/{id}
+Get a specific task
+- Headers: Authorization: Bearer {token}
+- Response (200):
+  ```json
+  {
+    "task": {
+      "id": "string",
+      "title": "string",
+      "description": "string",
+      "completed": "boolean",
+      "createdAt": "string",
+      "updatedAt": "string",
+      "userId": "string"
+    }
+  }
+  ```
+
+### PUT /api/tasks/{id}
+Update a task
+- Headers: Authorization: Bearer {token}
+- Request body:
+  ```json
+  {
+    "title": "string",
+    "description": "string",
+    "completed": "boolean"
+  }
+  ```
+- Response (200):
+  ```json
+  {
+    "task": {
+      "id": "string",
+      "title": "string",
+      "description": "string",
+      "completed": "boolean",
+      "createdAt": "string",
+      "updatedAt": "string",
+      "userId": "string"
+    }
+  }
+  ```
+
+### PATCH /api/tasks/{id}/toggle
+Toggle task completion status
+- Headers: Authorization: Bearer {token}
+- Response (200):
+  ```json
+  {
+    "task": {
+      "id": "string",
+      "title": "string",
+      "description": "string",
+      "completed": "boolean",
+      "createdAt": "string",
+      "updatedAt": "string",
+      "userId": "string"
+    }
+  }
+  ```
+
+### DELETE /api/tasks/{id}
+Delete a task
+- Headers: Authorization: Bearer {token}
+- Response (200):
+  ```json
+  {
+    "success": true
+  }
+  ```

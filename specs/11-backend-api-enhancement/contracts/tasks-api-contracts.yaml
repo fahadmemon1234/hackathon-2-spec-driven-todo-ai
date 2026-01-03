@@ -1,0 +1,186 @@
+# API Contracts: Backend API Enhancement
+
+## Task Management Endpoints (Base: /api)
+
+### POST /api/tasks
+Create a new task for the authenticated user
+- Headers: Authorization: Bearer {valid_jwt_token}
+- Request body:
+  ```json
+  {
+    "title": "string (1-200 chars)",
+    "description": "string (0-1000 chars) | null",
+    "priority": "string (high|medium|low) | null",
+    "category": "string (0-50 chars) | null"
+  }
+  ```
+- Response (201):
+  ```json
+  {
+    "id": "integer",
+    "user_id": "string (UUID)",
+    "title": "string",
+    "description": "string | null",
+    "completed": "boolean",
+    "priority": "string",
+    "category": "string | null",
+    "created_at": "datetime",
+    "updated_at": "datetime"
+  }
+  ```
+- Response (401): Invalid or missing token
+- Response (422): Validation error (invalid input)
+
+### GET /api/tasks
+Get all tasks for the authenticated user with optional filtering and sorting
+- Headers: Authorization: Bearer {valid_jwt_token}
+- Query parameters:
+  - status: string (optional, values: "all", "pending", "completed", default: "all")
+  - priority: string (optional, values: "all", "high", "medium", "low", default: "all")
+  - category: string (optional, category name or "all", default: "all")
+  - search: string (optional, keyword to search in title or description)
+  - sort: string (optional, values: "created", "title", "priority", "category", default: "created")
+- Response (200):
+  ```json
+  [
+    {
+      "id": "integer",
+      "user_id": "string (UUID)",
+      "title": "string",
+      "description": "string | null",
+      "completed": "boolean",
+      "priority": "string",
+      "category": "string | null",
+      "created_at": "datetime",
+      "updated_at": "datetime"
+    }
+  ]
+  ```
+- Response (401): Invalid or missing token
+
+### GET /api/tasks/{id}
+Get a specific task
+- Headers: Authorization: Bearer {valid_jwt_token}
+- Path parameter: id (integer, required)
+- Response (200):
+  ```json
+  {
+    "id": "integer",
+    "user_id": "string (UUID)",
+    "title": "string",
+    "description": "string | null",
+    "completed": "boolean",
+    "priority": "string",
+    "category": "string | null",
+    "created_at": "datetime",
+    "updated_at": "datetime"
+  }
+  ```
+- Response (401): Invalid or missing token
+- Response (403): Not authorized to access this task
+- Response (404): Task not found
+
+### PUT /api/tasks/{id}
+Update a specific task
+- Headers: Authorization: Bearer {valid_jwt_token}
+- Path parameter: id (integer, required)
+- Request body:
+  ```json
+  {
+    "title": "string (1-200 chars) | null",
+    "description": "string (0-1000 chars) | null",
+    "priority": "string (high|medium|low) | null",
+    "category": "string (0-50 chars) | null",
+    "completed": "boolean | null"
+  }
+  ```
+- Response (200):
+  ```json
+  {
+    "id": "integer",
+    "user_id": "string (UUID)",
+    "title": "string",
+    "description": "string | null",
+    "completed": "boolean",
+    "priority": "string",
+    "category": "string | null",
+    "created_at": "datetime",
+    "updated_at": "datetime"
+  }
+  ```
+- Response (401): Invalid or missing token
+- Response (403): Not authorized to update this task
+- Response (404): Task not found
+- Response (422): Validation error (invalid input)
+
+### PATCH /api/tasks/{id}/complete
+Toggle task completion status
+- Headers: Authorization: Bearer {valid_jwt_token}
+- Path parameter: id (integer, required)
+- Response (200):
+  ```json
+  {
+    "id": "integer",
+    "user_id": "string (UUID)",
+    "title": "string",
+    "description": "string | null",
+    "completed": "boolean",
+    "priority": "string",
+    "category": "string | null",
+    "created_at": "datetime",
+    "updated_at": "datetime"
+  }
+  ```
+- Response (401): Invalid or missing token
+- Response (403): Not authorized to update this task
+- Response (404): Task not found
+
+### DELETE /api/tasks/{id}
+Delete a specific task
+- Headers: Authorization: Bearer {valid_jwt_token}
+- Path parameter: id (integer, required)
+- Response (204): Task successfully deleted
+- Response (401): Invalid or missing token
+- Response (403): Not authorized to delete this task
+- Response (404): Task not found
+
+## Authentication Requirements
+
+All task endpoints require a valid JWT token in the Authorization header:
+- Format: `Authorization: Bearer <token>`
+- Verification: Against BETTER_AUTH_SECRET using HS256 algorithm
+- User ID extraction: From payload.user.id or payload.id field
+- Access control: Users can only access/modify their own tasks
+
+## Error Responses
+
+### 401 Unauthorized
+- Occurs when: Missing, invalid, or expired JWT token
+- Response body:
+  ```json
+  {
+    "detail": "Invalid or expired token"
+  }
+  ```
+
+### 403 Forbidden
+- Occurs when: User tries to access a task that belongs to another user
+- Response body:
+  ```json
+  {
+    "detail": "Not authorized to access this task"
+  }
+  ```
+
+### 404 Not Found
+- Occurs when: Requested task doesn't exist
+- Response body:
+  ```json
+  {
+    "detail": "Task not found"
+  }
+  ```
+
+### 422 Validation Error
+- Occurs when: Invalid request parameters or body
+- Response body varies based on specific validation error

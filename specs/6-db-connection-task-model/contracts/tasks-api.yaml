@@ -1,0 +1,142 @@
+# API Contract: Database Connection & Task Model
+
+## Database Connection Endpoints
+
+### GET /health
+Health check endpoint to verify database connectivity
+- Response (200):
+  ```json
+  {
+    "status": "healthy",
+    "database": "connected"
+  }
+  ```
+
+## Task Management Endpoints
+
+### POST /api/tasks
+Create a new task
+- Headers: Authorization: Bearer {token}
+- Request body:
+  ```json
+  {
+    "title": "string (1-200 chars)",
+    "description": "string (0-1000 chars) or null"
+  }
+  ```
+- Response (201):
+  ```json
+  {
+    "id": "integer",
+    "user_id": "string (UUID)",
+    "title": "string",
+    "description": "string or null",
+    "completed": "boolean",
+    "created_at": "datetime",
+    "updated_at": "datetime"
+  }
+  ```
+- Response (400): Validation error
+- Response (401): Unauthorized (invalid/missing token)
+- Response (422): Validation error (invalid input)
+
+### GET /api/tasks
+Get all tasks for the authenticated user
+- Headers: Authorization: Bearer {token}
+- Query parameters:
+  - status: string (optional, values: "all", "pending", "completed", default: "all")
+  - sort: string (optional, values: "created", "title", default: "created")
+- Response (200):
+  ```json
+  {
+    "tasks": [
+      {
+        "id": "integer",
+        "user_id": "string (UUID)",
+        "title": "string",
+        "description": "string or null",
+        "completed": "boolean",
+        "created_at": "datetime",
+        "updated_at": "datetime"
+      }
+    ]
+  }
+  ```
+- Response (401): Unauthorized (invalid/missing token)
+
+### GET /api/tasks/{id}
+Get a specific task
+- Headers: Authorization: Bearer {token}
+- Path parameter: id (integer)
+- Response (200):
+  ```json
+  {
+    "id": "integer",
+    "user_id": "string (UUID)",
+    "title": "string",
+    "description": "string or null",
+    "completed": "boolean",
+    "created_at": "datetime",
+    "updated_at": "datetime"
+  }
+  ```
+- Response (401): Unauthorized (invalid/missing token)
+- Response (403): Forbidden (task doesn't belong to user)
+- Response (404): Task not found
+
+### PUT /api/tasks/{id}
+Update a task
+- Headers: Authorization: Bearer {token}
+- Path parameter: id (integer)
+- Request body:
+  ```json
+  {
+    "title": "string (1-200 chars)",
+    "description": "string (0-1000 chars) or null",
+    "completed": "boolean"
+  }
+  ```
+- Response (200):
+  ```json
+  {
+    "id": "integer",
+    "user_id": "string (UUID)",
+    "title": "string",
+    "description": "string or null",
+    "completed": "boolean",
+    "created_at": "datetime",
+    "updated_at": "datetime"
+  }
+  ```
+- Response (401): Unauthorized (invalid/missing token)
+- Response (403): Forbidden (task doesn't belong to user)
+- Response (404): Task not found
+
+### PATCH /api/tasks/{id}/complete
+Toggle task completion status
+- Headers: Authorization: Bearer {token}
+- Path parameter: id (integer)
+- Response (200):
+  ```json
+  {
+    "id": "integer",
+    "user_id": "string (UUID)",
+    "title": "string",
+    "description": "string or null",
+    "completed": "boolean",
+    "created_at": "datetime",
+    "updated_at": "datetime"
+  }
+  ```
+- Response (401): Unauthorized (invalid/missing token)
+- Response (403): Forbidden (task doesn't belong to user)
+- Response (404): Task not found
+
+### DELETE /api/tasks/{id}
+Delete a task
+- Headers: Authorization: Bearer {token}
+- Path parameter: id (integer)
+- Response (204): Task successfully deleted
+- Response (401): Unauthorized (invalid/missing token)
+- Response (403): Forbidden (task doesn't belong to user)
+- Response (404): Task not found

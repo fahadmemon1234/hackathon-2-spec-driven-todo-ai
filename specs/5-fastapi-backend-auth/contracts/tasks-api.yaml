@@ -1,0 +1,165 @@
+# API Contracts: FastAPI Backend with Better Auth Integration
+
+## Authentication Endpoints
+
+### POST /api/auth/login
+Login a user and return JWT token
+- Request body:
+  ```json
+  {
+    "email": "string",
+    "password": "string"
+  }
+  ```
+- Response (200):
+  ```json
+  {
+    "access_token": "string",
+    "token_type": "bearer"
+  }
+  ```
+
+### POST /api/auth/signup
+Register a new user
+- Request body:
+  ```json
+  {
+    "email": "string",
+    "password": "string"
+  }
+  ```
+- Response (200):
+  ```json
+  {
+    "id": "string",
+    "email": "string"
+  }
+  ```
+
+## Task Management Endpoints
+
+### GET /api/tasks
+Get all tasks for the authenticated user
+- Headers: Authorization: Bearer {token}
+- Query parameters:
+  - status: string (optional, values: "all", "pending", "completed", default: "all")
+  - sort: string (optional, values: "created", "title", default: "created")
+- Response (200):
+  ```json
+  {
+    "tasks": [
+      {
+        "id": "integer",
+        "user_id": "string",
+        "title": "string",
+        "description": "string | null",
+        "completed": "boolean",
+        "created_at": "datetime",
+        "updated_at": "datetime"
+      }
+    ]
+  }
+  ```
+
+### POST /api/tasks
+Create a new task
+- Headers: Authorization: Bearer {token}
+- Request body:
+  ```json
+  {
+    "title": "string",
+    "description": "string | null"
+  }
+  ```
+- Response (201):
+  ```json
+  {
+    "id": "integer",
+    "user_id": "string",
+    "title": "string",
+    "description": "string | null",
+    "completed": "boolean",
+    "created_at": "datetime",
+    "updated_at": "datetime"
+  }
+  ```
+
+### GET /api/tasks/{id}
+Get a specific task
+- Headers: Authorization: Bearer {token}
+- Path parameter: id (integer)
+- Response (200):
+  ```json
+  {
+    "id": "integer",
+    "user_id": "string",
+    "title": "string",
+    "description": "string | null",
+    "completed": "boolean",
+    "created_at": "datetime",
+    "updated_at": "datetime"
+  }
+  ```
+- Response (404): Task not found or doesn't belong to user
+
+### PUT /api/tasks/{id}
+Update a task
+- Headers: Authorization: Bearer {token}
+- Path parameter: id (integer)
+- Request body:
+  ```json
+  {
+    "title": "string",
+    "description": "string | null",
+    "completed": "boolean"
+  }
+  ```
+- Response (200):
+  ```json
+  {
+    "id": "integer",
+    "user_id": "string",
+    "title": "string",
+    "description": "string | null",
+    "completed": "boolean",
+    "created_at": "datetime",
+    "updated_at": "datetime"
+  }
+  ```
+- Response (404): Task not found or doesn't belong to user
+
+### PATCH /api/tasks/{id}/complete
+Toggle task completion status
+- Headers: Authorization: Bearer {token}
+- Path parameter: id (integer)
+- Response (200):
+  ```json
+  {
+    "id": "integer",
+    "user_id": "string",
+    "title": "string",
+    "description": "string | null",
+    "completed": "boolean",
+    "created_at": "datetime",
+    "updated_at": "datetime"
+  }
+  ```
+- Response (404): Task not found or doesn't belong to user
+
+### DELETE /api/tasks/{id}
+Delete a task
+- Headers: Authorization: Bearer {token}
+- Path parameter: id (integer)
+- Response (204): Task successfully deleted
+- Response (404): Task not found or doesn't belong to user
+
+## Health Check Endpoint
+
+### GET /health
+Health check endpoint to verify API is running
+- Response (200):
+  ```json
+  {
+    "status": "healthy"
+  }
+  ```
