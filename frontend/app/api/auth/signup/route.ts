@@ -7,7 +7,7 @@ export async function POST(req: Request) {
     const { email, password } = body;
 
     // Forward the signup request to the backend API
-    const backendResponse = await fetch('http://localhost:8000/api/api/auth/signup', {
+    const backendResponse = await fetch('http://localhost:8000/api/auth/signup', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

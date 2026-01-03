@@ -18,7 +18,7 @@ export const LoginForm = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-
+debugger;
     try {
       // Call the login API route
       const response = await fetch("/api/auth/login", {

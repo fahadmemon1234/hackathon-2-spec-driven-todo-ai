@@ -22,7 +22,7 @@ class TaskUpdate(SQLModel):
     category: Optional[str] = Field(default=None, max_length=50, description="e.g., work, personal, health, shopping")
     completed: Optional[bool] = None
 
-router = APIRouter(prefix="/api")
+router = APIRouter()
 
 def get_task_or_404(task_id: int, user_id: str, session: Session) -> Task:
     """

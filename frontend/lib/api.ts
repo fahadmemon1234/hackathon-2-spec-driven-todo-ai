@@ -33,7 +33,7 @@ export const api = {
     if (search) queryParams.append('search', search);
 
     const queryString = queryParams.toString();
-    const url = `${BASE_URL}/api/api/tasks${queryString ? '?' + queryString : ''}`;
+    const url = `${BASE_URL}/api/tasks${queryString ? '?' + queryString : ''}`;
 
     const response = await fetch(url, {
       headers: {
@@ -59,7 +59,7 @@ export const api = {
       throw new Error('No authentication token available');
     }
 
-    const response = await fetch(`${BASE_URL}/api/api/tasks`, {
+    const response = await fetch(`${BASE_URL}/api/tasks`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -86,7 +86,7 @@ export const api = {
       throw new Error('No authentication token available');
     }
 
-    const response = await fetch(`${BASE_URL}/api/api/tasks/${id}`, {
+    const response = await fetch(`${BASE_URL}/api/tasks/${id}`, {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
@@ -114,7 +114,7 @@ export const api = {
 
     const { id, ...updateData } = data; // Extract id and spread the rest
 
-    const response = await fetch(`${BASE_URL}/api/api/tasks/${id}`, {
+    const response = await fetch(`${BASE_URL}/api/tasks/${id}`, {
       method: 'PUT',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -144,7 +144,7 @@ export const api = {
       throw new Error('No authentication token available');
     }
 
-    const response = await fetch(`${BASE_URL}/api/api/tasks/${id}/complete`, {
+    const response = await fetch(`${BASE_URL}/api/tasks/${id}/complete`, {
       method: 'PATCH',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -173,7 +173,7 @@ export const api = {
       throw new Error('No authentication token available');
     }
 
-    const response = await fetch(`${BASE_URL}/api/api/tasks/${id}`, {
+    const response = await fetch(`${BASE_URL}/api/tasks/${id}`, {
       method: 'DELETE',
       headers: {
         'Authorization': `Bearer ${token}`,

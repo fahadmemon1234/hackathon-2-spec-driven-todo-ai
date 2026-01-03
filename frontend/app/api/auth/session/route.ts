@@ -10,7 +10,7 @@ export async function GET(req: Request) {
     }
 
     // Forward the request to the backend API to validate the token
-    const backendResponse = await fetch('http://localhost:8000/api/api/auth/session', {
+    const backendResponse = await fetch('http://localhost:8000/api/auth/session', {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',

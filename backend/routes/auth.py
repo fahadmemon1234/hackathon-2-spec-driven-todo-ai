@@ -10,7 +10,7 @@ import os
 import hashlib
 import uuid
 
-router = APIRouter(prefix="/api")
+router = APIRouter()
 
 # Define request models
 class UserCreate(BaseModel):

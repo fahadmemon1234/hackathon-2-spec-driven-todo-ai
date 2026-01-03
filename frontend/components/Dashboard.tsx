@@ -110,18 +110,20 @@ const Dashboard = () => {
   const handleEditTask = (task: any) => {
     setEditingTask(task);
     setIsTaskModalOpen(true);
-    if (typeof window !== "undefined") {
-      localStorage.setItem("openedModel", "true");
-    }
+    localStorage.setItem("openedModel", "true");
+    // if (typeof window !== "undefined") {
+    //   localStorage.setItem("openedModel", "true");
+    // }
   };
 
   // Handle closing the task form modal
   const handleCloseTaskModal = () => {
     setIsTaskModalOpen(false);
     setEditingTask(null);
-    if (typeof window !== "undefined") {
-      localStorage.removeItem("openedModel");
-    }
+    localStorage.removeItem("openedModel");
+    // if (typeof window !== "undefined") {
+    //   localStorage.removeItem("openedModel");
+    // }
   };
 
   // Handle submitting the task form (both create and update)
