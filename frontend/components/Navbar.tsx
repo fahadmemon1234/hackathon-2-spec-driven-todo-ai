@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -10,12 +10,17 @@ import { User, LogOut, LayoutGrid } from "lucide-react";
 const Navbar = () => {
   const { user, signOut } = useAuth();
 
-  var isOpen = localStorage.getItem("openedModel");
+  const [isOpen, setIsOpen] = useState(false);
+
+  useEffect(() => {
+    const opened = localStorage.getItem("openedModel");
+    setIsOpen(opened === "true");
+  }, []);
 
   return (
     <motion.nav
       className={`fixed top-4 left-1/2 -translate-x-1/2 w-[95%] max-w-7xl transition-all duration-500 ${
-        isOpen == "true"
+        isOpen == true
           ? "z-0 opacity-20 blur-sm scale-95"
           : "z-[100] opacity-100"
       }`}
