@@ -10,7 +10,7 @@ export async function GET(req: Request) {
     }
 
     // Forward the request to the backend API to validate the token
-    const backendResponse = await fetch(`${process.env.BACKEND_URL}/api/auth/session`, {
+    const backendResponse = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/session`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',

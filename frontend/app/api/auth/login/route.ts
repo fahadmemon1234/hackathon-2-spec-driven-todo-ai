@@ -6,9 +6,8 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { email, password } = body;
 
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
     // Forward the login request to the backend API
-    const backendResponse = await fetch(`${backendUrl}/api/auth/login`, {
+    const backendResponse = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
