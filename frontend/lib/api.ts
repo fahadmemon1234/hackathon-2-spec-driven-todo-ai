@@ -1,5 +1,7 @@
 // Base API URL
-const BASE_URL = 'http://localhost:8000'; // Backend API URL
+// const BASE_URL = 'http://localhost:8000'; // Backend API URL
+
+const BASE_URL = process.env.BACKEND_URL || 'http://localhost:8000';
 
 // API client with JWT auto-attachment
 export const api = {

@@ -7,7 +7,7 @@ export async function POST(req: Request) {
     const { email, password } = body;
 debugger;
     // Forward the login request to the backend API
-    const backendResponse = await fetch('http://localhost:8000/api/auth/login', {
+    const backendResponse = await fetch(`${process.env.BACKEND_URL}/api/auth/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
