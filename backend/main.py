@@ -18,7 +18,7 @@ app = FastAPI(lifespan=lifespan, title="Todo Backend API", version="1.0.0")
 # Setup CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://todo-full-stack-web-application-theta.vercel.app", "http://localhost:3000", "http://localhost:3001"],  # Frontend origin
+    allow_origins=["https://todo-full-stack-web-application-cha.vercel.app", "http://localhost:3000", "http://localhost:3001"],  # Frontend origin
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
