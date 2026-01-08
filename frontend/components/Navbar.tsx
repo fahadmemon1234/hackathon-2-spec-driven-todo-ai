@@ -12,10 +12,14 @@ const Navbar = () => {
 
   const [isOpen, setIsOpen] = useState(false);
 
-  useEffect(() => {
+useEffect(() => {
+  const interval = setInterval(() => {
     const opened = localStorage.getItem("openedModel");
     setIsOpen(opened === "true");
-  }, []);
+  }, 300);
+
+  return () => clearInterval(interval);
+}, []);
 
   return (
     <motion.nav
