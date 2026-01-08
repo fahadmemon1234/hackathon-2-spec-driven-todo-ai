@@ -16,7 +16,7 @@ useEffect(() => {
   const interval = setInterval(() => {
     const opened = localStorage.getItem("openedModel");
     setIsOpen(opened === "true");
-  }, 300); // 300ms ya 500ms best hota hai
+  }, 300);
 
   return () => clearInterval(interval);
 }, []);
