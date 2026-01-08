@@ -1,0 +1,306 @@
+openapi: 3.0.3
+info:
+  title: Model Context Protocol (MCP) Tools for Task Management
+  description: MCP tools that allow the AI agent to perform task management operations
+  version: 1.0.0
+paths:
+  # MCP tools are accessed through the MCP protocol, not standard HTTP paths
+  # This is a conceptual representation of the tools available
+  /tools/add_task:
+    post:
+      summary: Create a new task
+      description: Creates a new task for the authenticated user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddTaskRequest'
+      responses:
+        '200':
+          description: Task successfully created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AddTaskResponse'
+  /tools/list_tasks:
+    post:
+      summary: List tasks for the user
+      description: Lists tasks for the authenticated user with optional filtering
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ListTasksRequest'
+      responses:
+        '200':
+          description: List of user's tasks
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListTasksResponse'
+  /tools/update_task:
+    post:
+      summary: Update task title/description
+      description: Updates the title or description of an existing task
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTaskRequest'
+      responses:
+        '200':
+          description: Task successfully updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdateTaskResponse'
+  /tools/complete_task:
+    post:
+      summary: Mark task as completed
+      description: Marks a task as completed
+      requestBody:
+        required: true
+        content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CompleteTaskRequest'
+      responses:
+        '200':
+          description: Task successfully marked as completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CompleteTaskResponse'
+  /tools/delete_task:
+    post:
+      summary: Delete a task
+      description: Deletes an existing task
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeleteTaskRequest'
+      responses:
+        '200':
+          description: Task successfully deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteTaskResponse'
+components:
+  schemas:
+    # Common components
+    Task:
+      type: object
+      required:
+        - id
+        - title
+        - completed
+        - created_at
+      properties:
+        id:
+          type: integer
+          description: Unique identifier for the task
+          example: 1
+        title:
+          type: string
+          description: Title of the task
+          example: "Buy groceries"
+        description:
+          type: string
+          description: Optional description of the task
+          example: "Milk, bread, eggs"
+          nullable: true
+        completed:
+          type: boolean
+          description: Whether the task is completed
+          example: false
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp when the task was created
+          example: "2023-10-01T12:00:00Z"
+    
+    # add_task tool
+    AddTaskRequest:
+      type: object
+      required:
+        - user_id
+        - title
+      properties:
+        user_id:
+          type: string
+          description: ID of the authenticated user
+          example: "user123"
+        title:
+          type: string
+          description: Title of the task (1-200 characters)
+          example: "Buy milk tomorrow"
+        description:
+          type: string
+          description: Optional description of the task (max 1000 characters)
+          example: "2% milk from the grocery store"
+          nullable: true
+    AddTaskResponse:
+      type: object
+      required:
+        - task_id
+        - status
+        - title
+      properties:
+        task_id:
+          type: integer
+          description: ID of the created task
+          example: 123
+        status:
+          type: string
+          description: Status of the operation
+          example: "created"
+        title:
+          type: string
+          description: Title of the created task
+          example: "Buy milk tomorrow"
+        description:
+          type: string
+          description: Description of the created task (if provided)
+          example: "2% milk from the grocery store"
+          nullable: true
+    
+    # list_tasks tool
+    ListTasksRequest:
+      type: object
+      required:
+        - user_id
+      properties:
+        user_id:
+          type: string
+          description: ID of the authenticated user
+          example: "user123"
+        status:
+          type: string
+          description: Filter tasks by status
+          enum: [all, pending, completed]
+          default: "all"
+          example: "pending"
+    ListTasksResponse:
+      type: array
+      items:
+        $ref: '#/components/schemas/Task'
+    
+    # update_task tool
+    UpdateTaskRequest:
+      type: object
+      required:
+        - user_id
+        - task_id
+      properties:
+        user_id:
+          type: string
+          description: ID of the authenticated user
+          example: "user123"
+        task_id:
+          type: integer
+          description: ID of the task to update
+          example: 123
+        title:
+          type: string
+          description: New title for the task (optional)
+          example: "Buy almond milk tomorrow"
+        description:
+          type: string
+          description: New description for the task (optional)
+          example: "Unsweetened almond milk from the grocery store"
+          nullable: true
+    UpdateTaskResponse:
+      type: object
+      required:
+        - task_id
+        - status
+        - title
+      properties:
+        task_id:
+          type: integer
+          description: ID of the updated task
+          example: 123
+        status:
+          type: string
+          description: Status of the operation
+          example: "updated"
+        title:
+          type: string
+          description: Updated title of the task
+          example: "Buy almond milk tomorrow"
+    
+    # complete_task tool
+    CompleteTaskRequest:
+      type: object
+      required:
+        - user_id
+        - task_id
+      properties:
+        user_id:
+          type: string
+          description: ID of the authenticated user
+          example: "user123"
+        task_id:
+          type: integer
+          description: ID of the task to mark as completed
+          example: 123
+    CompleteTaskResponse:
+      type: object
+      required:
+        - task_id
+        - status
+        - title
+      properties:
+        task_id:
+          type: integer
+          description: ID of the completed task
+          example: 123
+        status:
+          type: string
+          description: Status of the operation
+          example: "completed"
+        title:
+          type: string
+          description: Title of the completed task
+          example: "Buy milk tomorrow"
+    
+    # delete_task tool
+    DeleteTaskRequest:
+      type: object
+      required:
+        - user_id
+        - task_id
+      properties:
+        user_id:
+          type: string
+          description: ID of the authenticated user
+          example: "user123"
+        task_id:
+          type: integer
+          description: ID of the task to delete
+          example: 123
+    DeleteTaskResponse:
+      type: object
+      required:
+        - task_id
+        - status
+        - title
+      properties:
+        task_id:
+          type: integer
+          description: ID of the deleted task
+          example: 123
+        status:
+          type: string
+          description: Status of the operation
+          example: "deleted"
+        title:
+          type: string
+          description: Title of the deleted task
+          example: "Buy milk tomorrow"

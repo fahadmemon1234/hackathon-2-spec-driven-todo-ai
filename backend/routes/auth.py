@@ -1,14 +1,14 @@
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from typing import Optional
-from sqlmodel import SQLModel as SQLModelBase, Field, Session, select
+from sqlmodel import Session, select
 from db import engine
+from models import User
 from dependencies import get_current_user_id
 from datetime import datetime, timedelta
 from jose import jwt
 import os
 import hashlib
-import uuid
 
 router = APIRouter()
 
@@ -20,13 +20,6 @@ class UserCreate(BaseModel):
 class UserLogin(BaseModel):
     email: str
     password: str
-
-# Define User model for database
-class User(SQLModelBase, table=True):
-    id: Optional[str] = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
-    email: str = Field(unique=True, index=True)
-    password_hash: str
-    created_at: datetime = Field(default_factory=datetime.utcnow)
 
 def hash_password(password: str) -> str:
     """Hash the password using SHA-256 (in production, use bcrypt or similar)"""

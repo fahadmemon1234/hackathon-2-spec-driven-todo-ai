@@ -19,5 +19,5 @@ def get_session():
 
 def create_db_and_tables():
     # Import models to register them with SQLModel metadata
-    from models import Task
+    from models import Task, Conversation, Message, User
     SQLModel.metadata.create_all(engine)

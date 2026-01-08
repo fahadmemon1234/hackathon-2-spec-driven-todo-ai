@@ -4,32 +4,32 @@
 import os
 from dotenv import load_dotenv
 from sqlmodel import create_engine, text
-from models import Task
+from models import Task, User, Conversation, Message
 
 def main():
     load_dotenv()
-    
+
     DATABASE_URL = os.getenv('DATABASE_URL', '')
     if not DATABASE_URL:
         print("ERROR: DATABASE_URL not found in environment")
         return
-    
+
     print(f"Using database URL: {DATABASE_URL[:50]}...")
-    
+
     try:
         # Create engine
         engine = create_engine(DATABASE_URL, echo=False)
-        
+
         print("\nVerifying schema matches model definition...")
-        
-        # Get the model fields
+
+        # Check the Task model
         model_fields = []
         for field_name in Task.model_fields.keys():
             model_fields.append(field_name)
-        
+
         print(f"Fields defined in Task model: {model_fields}")
 
-        # Check the database columns
+        # Check the database columns for task
         with engine.connect() as conn:
             result = conn.execute(text("SELECT column_name FROM information_schema.columns WHERE table_name = 'task';"))
             db_columns = [row[0] for row in result.fetchall()]
@@ -72,7 +72,7 @@ def main():
             print("\n[SUCCESS] Database schema is in sync with model definition!")
         else:
             print(f"\n[INFO] Need to add missing columns: {missing_in_db}")
-        
+
     except Exception as e:
         print(f"Error: {e}")
         import traceback

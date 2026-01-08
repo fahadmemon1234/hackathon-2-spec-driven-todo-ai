@@ -1,0 +1,103 @@
+openapi: 3.0.3
+info:
+  title: AI-Powered Chatbot for Task Management API
+  description: API for interacting with the AI chatbot that manages tasks through natural language
+  version: 1.0.0
+servers:
+  - url: http://localhost:8000
+    description: Development server
+paths:
+  /api/{user_id}/chat:
+    post:
+      summary: Send a message to the AI chatbot and receive a response
+      description: |
+        Sends a user message to the AI chatbot and returns the AI's response.
+        The AI may perform task operations using MCP tools during the conversation.
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          description: The ID of the authenticated user
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatRequest'
+      responses:
+        '200':
+          description: Successful response from the AI chatbot
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatResponse'
+        '401':
+          description: Unauthorized - invalid or missing JWT token
+        '404':
+          description: Not Found - conversation_id doesn't exist or not owned by user
+        '500':
+          description: Internal Server Error - agent execution failed
+      security:
+        - jwt_auth: []
+components:
+  schemas:
+    ChatRequest:
+      type: object
+      required:
+        - message
+      properties:
+        conversation_id:
+          type: integer
+          description: ID of existing conversation (optional - creates new if missing)
+          example: 123
+        message:
+          type: string
+          description: User's natural language input
+          example: "Add a task to buy milk tomorrow"
+    ChatResponse:
+      type: object
+      required:
+        - conversation_id
+        - response
+      properties:
+        conversation_id:
+          type: integer
+          description: ID of the conversation
+          example: 123
+        response:
+          type: string
+          description: AI's natural language response
+          example: "Got it! Added task: Buy milk tomorrow"
+        tool_calls:
+          type: array
+          description: List of tools invoked for debugging/transparency (optional)
+          items:
+            $ref: '#/components/schemas/ToolCall'
+    ToolCall:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Name of the tool called
+          example: "add_task"
+        arguments:
+          type: object
+          description: Arguments passed to the tool
+          example: {"user_id": "user123", "title": "Buy milk tomorrow"}
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          description: Error message
+          example: "Invalid token"
+  securitySchemes:
+    jwt_auth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token required for authentication
