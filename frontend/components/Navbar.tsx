@@ -5,16 +5,30 @@ import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
-import { User, LogOut, LayoutGrid, Menu, X } from "lucide-react";
+import { User, LogOut, LayoutGrid, Menu, X, Sparkles } from "lucide-react";
 
 const Navbar = () => {
   const { user, signOut } = useAuth();
 
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
+
+useEffect(() => {
+  const interval = setInterval(() => {
+    const opened = localStorage.getItem("openedModel");
+    setIsOpen(opened === "true");
+  }, 300); // 300ms ya 500ms best hota hai
+
+  return () => clearInterval(interval);
+}, []);
+
 
   return (
     <motion.nav
-      className="fixed top-4 left-1/2 -translate-x-1/2 w-[95%] max-w-7xl z-[100]"
+      className={`fixed top-4 left-1/2 -translate-x-1/2 w-[95%] max-w-7xl transition-all duration-500 ${
+        isOpen == true
+          ? "z-0 opacity-20 blur-sm scale-95"
+          : "z-[100] opacity-100"
+      }`}
     >
       <div className="backdrop-blur-xl border border-white/10 bg-slate-900/40 rounded-2xl px-6 py-3 flex justify-between items-center shadow-2xl">
         <div className="flex items-center gap-3">
@@ -35,9 +49,15 @@ const Navbar = () => {
               <Link href="/chat">
                 <Button
                   variant="ghost"
-                  className="text-slate-300 hover:text-white h-9 px-4 text-xs font-bold uppercase tracking-wider"
+                  className="relative group overflow-hidden bg-slate-900/50 border border-slate-700/50 text-slate-300 hover:text-white h-9 px-4 text-xs font-bold uppercase tracking-wider transition-all duration-300 rounded-lg hover:border-blue-500/50 hover:shadow-[0_0_15px_rgba(59,130,246,0.2)]"
                 >
-                  AI Chat
+                  {/* Subtle Background Glow on Hover */}
+                  <span className="absolute inset-0 bg-gradient-to-r from-blue-600/10 to-purple-600/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+
+                  <span className="relative flex items-center gap-2">
+                    <Sparkles className="w-3.5 h-3.5 text-blue-400 group-hover:animate-pulse" />
+                    AI Chat
+                  </span>
                 </Button>
               </Link>
               <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/5 border border-white/5 text-slate-300">
@@ -83,10 +103,10 @@ const Navbar = () => {
           {user ? (
             <div className="flex items-center gap-2">
               <button
-                onClick={() => setIsMenuOpen(!isMenuOpen)}
+                onClick={() => setIsOpen(!isOpen)}
                 className="text-slate-300 hover:text-white p-2"
               >
-                {isMenuOpen ? <X size={20} /> : <Menu size={20} />}
+                {isOpen ? <X size={20} /> : <Menu size={20} />}
               </button>
             </div>
           ) : (
@@ -111,7 +131,7 @@ const Navbar = () => {
 
       {/* Mobile menu dropdown */}
       <AnimatePresence>
-        {isMenuOpen && user && (
+        {isOpen && user && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
@@ -119,7 +139,7 @@ const Navbar = () => {
             className="md:hidden mt-2 backdrop-blur-xl border border-white/10 bg-slate-900/80 rounded-2xl px-6 py-4 shadow-2xl"
           >
             <div className="flex flex-col gap-3">
-              <Link href="/chat" onClick={() => setIsMenuOpen(false)}>
+              <Link href="/chat" onClick={() => setIsOpen(false)}>
                 <Button
                   variant="ghost"
                   className="w-full justify-start text-slate-300 hover:text-white h-10 text-sm font-bold"
@@ -140,7 +160,7 @@ const Navbar = () => {
               <Button
                 onClick={() => {
                   signOut();
-                  setIsMenuOpen(false);
+                  setIsOpen(false);
                 }}
                 variant="ghost"
                 className="w-full justify-start text-slate-500 hover:text-red-400 hover:bg-red-400/10 h-10 text-sm font-bold"
