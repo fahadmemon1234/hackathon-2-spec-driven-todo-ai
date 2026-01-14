@@ -44,7 +44,7 @@ class Conversation(ConversationBase, table=True):
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
     # Relationship to messages
-    messages: List["Message"] = Relationship(back_populates="conversation", cascade_delete=True)
+    messages: List["Message"] = Relationship(back_populates="conversation")
 
 
 class MessageBase(SQLModel):
