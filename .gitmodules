@@ -1,0 +1,3 @@
+[submodule "kagent"]
+	path = kagent
+	url = https://github.com/fahadmemon1234/hackathon-2-spec-driven-todo-ai/tree/phase4-k8s-windows
