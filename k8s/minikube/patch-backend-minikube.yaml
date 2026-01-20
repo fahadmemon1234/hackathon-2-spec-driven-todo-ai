@@ -1,0 +1,16 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+spec:
+  template:
+    spec:
+      containers:
+      - name: backend
+        env:
+        - name: DATABASE_URL
+          value: "postgresql://user:password@postgres-minikube:5432/todo_db"
+        - name: REDIS_URL
+          value: "redis://redis-master-minikube:6379"
+        - name: KAFKA_BROKER
+          value: "my-cluster-kafka-brokers-kafka:9092"

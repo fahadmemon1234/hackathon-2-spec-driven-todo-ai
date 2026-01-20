@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+spec:
+  replicas: 3
+  template:
+    spec:
+      containers:
+      - name: frontend
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        env:
+        - name: NEXT_PUBLIC_BACKEND_URL
+          value: "https://api.todoapp.com"
+        - name: LOG_LEVEL
+          value: "info"

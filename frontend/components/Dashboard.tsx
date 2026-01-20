@@ -67,6 +67,10 @@ const Dashboard = () => {
     description?: string;
     priority?: string;
     category?: string;
+    tags?: string[];
+    due_date?: string;
+    is_recurring?: boolean;
+    recurrence_rule?: string;
   }) => {
     try {
       const newTask = await api.createTask(taskData);
@@ -85,6 +89,11 @@ const Dashboard = () => {
     completed?: boolean;
     priority?: string;
     category?: string;
+    tags?: string[];
+    due_date?: string;
+    is_recurring?: boolean;
+    recurrence_rule?: string;
+    next_occurrence?: string;
   }) => {
     try {
       const updatedTask = await api.updateTask(taskData);
@@ -108,7 +117,17 @@ const Dashboard = () => {
 
   // Handle opening the edit form with pre-filled data
   const handleEditTask = (task: any) => {
-    setEditingTask(task);
+    setEditingTask({
+      id: task.id,
+      title: task.title,
+      description: task.description,
+      priority: task.priority,
+      category: task.category,
+      tags: task.tags,
+      due_date: task.due_date,
+      is_recurring: task.is_recurring,
+      recurrence_rule: task.recurrence_rule
+    });
     setIsTaskModalOpen(true);
     localStorage.setItem("openedModel", "true");
     // if (typeof window !== "undefined") {
@@ -133,6 +152,10 @@ const Dashboard = () => {
       description?: string;
       priority?: string;
       category?: string;
+      tags?: string[];
+      due_date?: string;
+      is_recurring?: boolean;
+      recurrence_rule?: string;
     },
     id?: string
   ) => {
@@ -206,6 +229,16 @@ const Dashboard = () => {
     return <PremiumLoader onComplete={() => setShowLoader(false)} />;
   }
 
+  // 1. Pehle tagged tasks ko filter karein
+const taggedTasks = tasks.filter(task => 
+  task.tags && Array.isArray(task.tags) && task.tags.length > 0
+);
+
+// 2. Ab stats sirf filtered tasks se calculate karein
+const totalTagged = taggedTasks.length;
+const inProgressTagged = taggedTasks.filter(t => !t.completed).length;
+const completedTagged = taggedTasks.filter(t => t.completed).length;
+
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-[#020617] text-slate-200 relative overflow-hidden">
@@ -267,52 +300,58 @@ const Dashboard = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-12">
-            {[
-              {
-                icon: Clock,
-                label: "Total Tasks",
-                val: totalTasks,
-                color: "text-blue-500",
-              },
-              {
-                icon: Circle,
-                label: "In Progress",
-                val: inProgressTasks,
-                color: "text-amber-500",
-              },
-              {
-                icon: CheckCircle,
-                label: "Completed",
-                val: completedTasks,
-                color: "text-emerald-500",
-              },
-            ].map((stat, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.1 }}
-                className="group bg-slate-900/20 border border-white/5 rounded-2xl p-6 backdrop-blur-xl hover:border-blue-500/30 transition-all"
-              >
-                <div className="flex items-center gap-4">
-                  <div
-                    className={`p-3 rounded-xl bg-slate-800/50 ${stat.color} group-hover:scale-110 transition-transform`}
-                  >
-                    <stat.icon size={24} />
-                  </div>
-                  <div>
-                    <p className="text-slate-500 text-[10px] uppercase tracking-[0.2em] font-bold">
-                      {stat.label}
-                    </p>
-                    <p className="text-3xl font-bold text-white mt-1 leading-none">
-                      {stat.val}
-                    </p>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-12">
+    {[
+      {
+        icon: Clock,
+        label: "Tagged Tasks", // Label update kiya
+        val: totalTagged,
+        color: "text-blue-500",
+        glow: "group-hover:shadow-[0_0_20px_rgba(59,130,246,0.15)]",
+      },
+      {
+        icon: Circle,
+        label: "Active Tags",
+        val: inProgressTagged,
+        color: "text-amber-500",
+        glow: "group-hover:shadow-[0_0_20px_rgba(245,158,11,0.15)]",
+      },
+      {
+        icon: CheckCircle,
+        label: "Tagged Done",
+        val: completedTagged,
+        color: "text-emerald-500",
+        glow: "group-hover:shadow-[0_0_20px_rgba(16,185,129,0.15)]",
+      },
+    ].map((stat, i) => (
+      <motion.div
+        key={i}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: i * 0.1 }}
+        className={`group bg-slate-900/40 border border-white/5 rounded-[24px] p-6 backdrop-blur-xl transition-all duration-500 hover:border-white/10 ${stat.glow}`}
+      >
+        <div className="flex items-center gap-4">
+          <div
+            className={`p-4 rounded-2xl bg-slate-800/40 ${stat.color} group-hover:scale-110 transition-transform duration-500 shadow-inner`}
+          >
+            <stat.icon size={22} strokeWidth={2.5} />
           </div>
+          <div>
+            <p className="text-slate-500 text-[10px] uppercase tracking-[0.25em] font-black">
+              {stat.label}
+            </p>
+            <div className="flex items-baseline gap-1">
+              <p className="text-3xl font-black text-white mt-1 leading-none tracking-tight">
+                {stat.val}
+              </p>
+              <div className={`w-1 h-1 rounded-full ${stat.color.replace('text', 'bg')} animate-pulse`} />
+            </div>
+          </div>
+        </div>
+      </motion.div>
+    ))}
+  </div>
 
           <main className="relative z-10">
             <div className="mb-10">

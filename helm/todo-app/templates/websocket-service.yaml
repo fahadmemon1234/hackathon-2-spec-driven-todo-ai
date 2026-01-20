@@ -1,0 +1,89 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "todo-app.fullname" . }}-websocket
+  labels:
+    {{- include "todo-app.labels" . | nindent 4 }}
+    app: websocket
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount | default 1 }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "todo-app.selectorLabels" . | nindent 6 }}
+      app: websocket
+  template:
+    metadata:
+      annotations:
+        {{- if .Values.global.daprEnabled }}
+        dapr.io/enabled: "true"
+        dapr.io/app-id: "websocket-service"
+        dapr.io/app-port: "8080"
+        {{- end }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "todo-app.selectorLabels" . | nindent 8 }}
+        app: websocket
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "todo-app.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}-websocket
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.websocket.repository }}:{{ .Values.image.websocket.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.websocket.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          env:
+            - name: KAFKA_BROKER
+              value: {{ .Values.kafka.broker }}
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "todo-app.fullname" . }}-websocket
+  labels:
+    {{- include "todo-app.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.websocket.type }}
+  ports:
+    - port: {{ .Values.service.websocket.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "todo-app.selectorLabels" . | nindent 4 }}
+    app: websocket

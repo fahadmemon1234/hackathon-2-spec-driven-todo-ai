@@ -1,0 +1,20 @@
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: taskpubsub
+spec:
+  type: pubsub.kafka
+  version: v1
+  metadata:
+  - name: brokers
+    value: "redpanda:29092"  # Update this to match your Kafka/Redpanda broker address
+  - name: authRequired
+    value: "false"
+  - name: consumerGroup
+    value: "task-consumer-group"
+  - name: clientID
+    value: "task-service"
+  - name: maxMessageBytes
+    value: 1048576
+  - name: consumeRetryInterval
+    value: 200ms

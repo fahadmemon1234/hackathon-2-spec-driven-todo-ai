@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Reminder Event",
+  "description": "Schema for reminder events published to the reminders topic",
+  "type": "object",
+  "properties": {
+    "task_id": {
+      "type": "integer",
+      "description": "Unique identifier of the task"
+    },
+    "user_id": {
+      "type": "string",
+      "description": "Identifier of the user who owns the task"
+    },
+    "title": {
+      "type": "string",
+      "description": "Title of the task"
+    },
+    "due_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the task is due"
+    },
+    "remind_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the reminder should be triggered"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the reminder was scheduled"
+    }
+  },
+  "required": ["task_id", "user_id", "title", "due_at", "remind_at", "timestamp"]
+}

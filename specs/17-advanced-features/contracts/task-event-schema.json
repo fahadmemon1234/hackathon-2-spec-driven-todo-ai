@@ -1,0 +1,77 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Task Event",
+  "description": "Schema for task events published to the task-events topic",
+  "type": "object",
+  "properties": {
+    "event_type": {
+      "type": "string",
+      "enum": ["created", "updated", "completed", "deleted"],
+      "description": "Type of the event"
+    },
+    "task_id": {
+      "type": "integer",
+      "description": "Unique identifier of the task"
+    },
+    "user_id": {
+      "type": "string",
+      "description": "Identifier of the user who owns the task"
+    },
+    "task_data": {
+      "$ref": "#/definitions/Task"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the event occurred"
+    }
+  },
+  "required": ["event_type", "task_id", "user_id", "task_data", "timestamp"],
+  "definitions": {
+    "Task": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer"
+        },
+        "user_id": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "completed": {
+          "type": "boolean"
+        },
+        "priority": {
+          "type": "string",
+          "enum": ["low", "medium", "high", "urgent"]
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "due_date": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "is_recurring": {
+          "type": "boolean"
+        },
+        "recurrence_rule": {
+          "type": "string"
+        },
+        "next_occurrence": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["id", "user_id", "title", "completed", "priority", "tags", "is_recurring"]
+    }
+  }
+}

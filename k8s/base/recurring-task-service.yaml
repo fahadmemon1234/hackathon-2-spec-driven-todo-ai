@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: recurring-task-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: recurring-task-service
+  template:
+    metadata:
+      labels:
+        app: recurring-task-service
+      annotations:
+        dapr.io/enabled: "true"
+        dapr.io/app-id: "recurring-task-service"
+        dapr.io/app-port: "8080"
+    spec:
+      containers:
+      - name: recurring-task-service
+        image: recurring-task-service:latest
+        ports:
+        - containerPort: 8080
+        env:
+        - name: KAFKA_BROKER
+          value: "my-cluster-kafka-brokers.kafka.svc.cluster.local:9092"
+        - name: DAPR_COMPONENTS_PATH
+          value: "/dapr-components"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: recurring-task-service
+spec:
+  selector:
+    app: recurring-task-service
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
+  type: ClusterIP

@@ -2,6 +2,7 @@ from sqlmodel import SQLModel, Field, Relationship
 from typing import Optional, List
 from datetime import datetime
 import uuid
+from sqlalchemy import Column, JSON
 
 
 class User(SQLModel, table=True):
@@ -24,13 +25,20 @@ class Task(SQLModel, table=True):
     title: str = Field(min_length=1, max_length=200)
     description: Optional[str] = Field(default=None, max_length=1000)
     completed: bool = Field(default=False)
-    priority: str = Field(default="medium", description="high | medium | low")
+    priority: str = Field(default="medium", description="high | medium | low | urgent")
     category: Optional[str] = Field(default=None, max_length=50, description="e.g., work, personal, health, shopping")
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(
         default_factory=datetime.utcnow,
         sa_column_kwargs={"onupdate": datetime.utcnow}
     )
+
+    # New fields for Phase 5 - Advanced Features
+    tags: List[str] = Field(default=[], sa_column=Column(JSON))
+    due_date: Optional[datetime] = Field(default=None)
+    is_recurring: bool = Field(default=False)
+    recurrence_rule: Optional[str] = Field(default=None, max_length=200, description="RRULE format recurrence pattern")
+    next_occurrence: Optional[datetime] = Field(default=None)
 
 
 class ConversationBase(SQLModel):

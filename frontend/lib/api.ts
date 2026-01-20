@@ -20,7 +20,16 @@ export const api = {
   },
 
   // Get all tasks for the authenticated user with optional filters
-  async getTasks(status?: string, priority?: string, category?: string, sort?: string, search?: string): Promise<any[]> {
+  async getTasks(
+    status?: string,
+    priority?: string,
+    category?: string,
+    sort?: string,
+    search?: string,
+    tags?: string,
+    due_after?: string,
+    due_before?: string
+  ): Promise<any[]> {
     const token = await api.getJwtToken();
     if (!token) {
       throw new Error('No authentication token available');
@@ -32,7 +41,10 @@ export const api = {
     if (priority) queryParams.append('priority', priority);
     if (category) queryParams.append('category', category);
     if (sort) queryParams.append('sort', sort);
-    if (search) queryParams.append('search', search);
+    if (search) queryParams.append('q', search); // Changed from 'search' to 'q' to match backend
+    if (tags) queryParams.append('tags', tags);
+    if (due_after) queryParams.append('due_after', due_after);
+    if (due_before) queryParams.append('due_before', due_before);
 
     const queryString = queryParams.toString();
     const url = `${BASE_URL}/api/tasks${queryString ? '?' + queryString : ''}`;
@@ -55,7 +67,16 @@ export const api = {
   },
 
   // Create a new task
-  async createTask(data: { title: string; description?: string; priority?: string; category?: string }): Promise<any> {
+  async createTask(data: {
+    title: string;
+    description?: string;
+    priority?: string;
+    category?: string;
+    tags?: string[];
+    due_date?: string;
+    is_recurring?: boolean;
+    recurrence_rule?: string;
+  }): Promise<any> {
     const token = await api.getJwtToken();
     if (!token) {
       throw new Error('No authentication token available');
@@ -108,7 +129,19 @@ export const api = {
   },
 
   // Update a task
-  async updateTask(data: { id: string; title?: string; description?: string; priority?: string; category?: string; completed?: boolean }): Promise<any> {
+  async updateTask(data: {
+    id: string;
+    title?: string;
+    description?: string;
+    priority?: string;
+    category?: string;
+    completed?: boolean;
+    tags?: string[];
+    due_date?: string;
+    is_recurring?: boolean;
+    recurrence_rule?: string;
+    next_occurrence?: string;
+  }): Promise<any> {
     const token = await api.getJwtToken();
     if (!token) {
       throw new Error('No authentication token available');

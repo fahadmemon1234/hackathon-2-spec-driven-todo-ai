@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+spec:
+  replicas: 3
+  template:
+    spec:
+      containers:
+      - name: backend
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: production-secrets
+              key: DB_PASSWORD
+        - name: KAFKA_BROKER
+          value: "prod-kafka-cluster:9092"
+        - name: LOG_LEVEL
+          value: "info"

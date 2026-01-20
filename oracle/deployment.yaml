@@ -1,0 +1,74 @@
+# Oracle Cloud (OKE) Deployment Configuration
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: todo-app
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: kafka-config
+  namespace: todo-app
+type: Opaque
+data:
+  # Kafka configuration for OKE
+  bootstrap.servers: <your-oke-kafka-bootstrap-servers>
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: todo-backend-oke
+  namespace: todo-app
+  labels:
+    app: todo-backend
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: todo-backend
+  template:
+    metadata:
+      labels:
+        app: todo-backend
+      annotations:
+        dapr.io/enabled: "true"
+        dapr.io/app-id: "todo-backend"
+        dapr.io/app-port: "8000"
+        dapr.io/config: "tracing-config"
+        dapr.io/log-level: "debug"
+    spec:
+      containers:
+      - name: api
+        image: todo-backend:latest
+        ports:
+        - containerPort: 8000
+        env:
+        - name: KAFKA_BROKER
+          valueFrom:
+            secretKeyRef:
+              name: kafka-config
+              key: bootstrap.servers
+        - name: DATABASE_URL
+          value: "postgresql://user:password@pg-cluster-oke:5432/todo_db"
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: todo-backend-service
+  namespace: todo-app
+spec:
+  selector:
+    app: todo-backend
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8000
+  type: ClusterIP
