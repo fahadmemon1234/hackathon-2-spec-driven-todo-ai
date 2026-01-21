@@ -30,6 +30,7 @@ const Dashboard = () => {
     "all" | "pending" | "completed"
   >("all");
   const [sortBy, setSortBy] = useState<"created" | "title">("created");
+  const [searchQuery, setSearchQuery] = useState("");
   const [showLoader, setShowLoader] = useState(true);
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<any>(null);
@@ -43,11 +44,17 @@ const Dashboard = () => {
     return () => clearTimeout(timer);
   }, []);
 
-  // Fetch tasks when component mounts
+  // Fetch tasks when component mounts or when filters change
   useEffect(() => {
     const fetchTasks = async () => {
       try {
-        const tasksData = await api.getTasks();
+        const tasksData = await api.getTasks(
+          activeFilter === "all" ? undefined : activeFilter,
+          undefined, // priority filter
+          undefined, // category filter
+          sortBy,
+          searchQuery // search query
+        );
         setTasks(tasksData);
       } catch (error) {
         console.error("Error fetching tasks:", error);
@@ -60,7 +67,7 @@ const Dashboard = () => {
     if (!showLoader) {
       fetchTasks();
     }
-  }, [showLoader]);
+  }, [showLoader, activeFilter, sortBy, searchQuery]);
 
   const handleAddTask = async (taskData: {
     title: string;
@@ -76,6 +83,8 @@ const Dashboard = () => {
       const newTask = await api.createTask(taskData);
       setTasks([newTask, ...tasks]);
       toast.success("Task created successfully");
+      // Clear search query to show the new task
+      setSearchQuery("");
     } catch (error) {
       console.error("Error adding task:", error);
       toast.error("Failed to create task");
@@ -109,6 +118,8 @@ const Dashboard = () => {
       } else {
         toast.success("Task updated successfully");
       }
+      // Clear search query to show the updated task
+      setSearchQuery("");
     } catch (error) {
       console.error("Error updating task:", error);
       toast.error("Failed to update task");
@@ -182,6 +193,8 @@ const Dashboard = () => {
           toast.success("Task completed!");
         }
       }
+      // Clear search query to show the updated task
+      setSearchQuery("");
     } catch (error) {
       console.error("Error toggling task completion:", error);
       toast.error("Failed to update task status");
@@ -194,6 +207,8 @@ const Dashboard = () => {
       if (success) {
         setTasks(tasks.filter((task) => task.id !== id));
         toast.success("Task deleted successfully");
+        // Clear search query to show the remaining tasks
+        setSearchQuery("");
       }
     } catch (error) {
       console.error("Error deleting task:", error);
@@ -201,7 +216,7 @@ const Dashboard = () => {
     }
   };
 
-  // Calculate dashboard statistics
+  // Calculate dashboard statistics based on all tasks (not filtered)
   const totalTasks = tasks.length;
   const completedTasks = tasks.filter((task) => task.completed).length;
   const inProgressTasks = totalTasks - completedTasks;
@@ -230,7 +245,7 @@ const Dashboard = () => {
   }
 
   // 1. Pehle tagged tasks ko filter karein
-const taggedTasks = tasks.filter(task => 
+const taggedTasks = sortedTasks.filter(task =>
   task.tags && Array.isArray(task.tags) && task.tags.length > 0
 );
 
@@ -296,6 +311,30 @@ const completedTagged = taggedTasks.filter(t => t.completed).length;
                   <option value="title">Sort by Title</option>
                 </select>
                 <LayoutGrid className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4 pointer-events-none group-hover:text-blue-400 transition-colors" />
+              </div>
+
+              <div className="relative group flex-1 lg:flex-none">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search tasks..."
+                  className="w-full bg-slate-900/40 border border-white/10 rounded-xl px-5 py-2.5 pl-11 text-sm text-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-600/50 appearance-none hover:bg-slate-800/60 transition-all"
+                />
+                <svg
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4 pointer-events-none"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                  ></path>
+                </svg>
               </div>
             </div>
           </div>
@@ -380,20 +419,26 @@ const completedTagged = taggedTasks.filter(t => t.completed).length;
                   </div>
                 </div>
                 <h3 className="text-xl font-bold text-white mb-2 tracking-tight">
-                  Focus on what matters
+                  {searchQuery ? "No matching tasks found" : "Focus on what matters"}
                 </h3>
                 <p className="text-slate-500 max-w-xs mb-8 text-sm font-light">
-                  Your task sanctuary is empty. Create your first milestone to
-                  begin your journey.
+                  {searchQuery
+                    ? "Try adjusting your search terms to find what you're looking for."
+                    : "Your task sanctuary is empty. Create your first milestone to begin your journey."
+                  }
                 </p>
                 <Button
-                  onClick={() =>
-                    document.getElementById("task-input-title")?.focus()
-                  }
+                  onClick={() => {
+                    if (searchQuery) {
+                      setSearchQuery(""); // Clear search when clicking "Clear Search"
+                    } else {
+                      document.getElementById("task-input-title")?.focus(); // Focus on input when adding task
+                    }
+                  }}
                   className="bg-blue-600 hover:bg-blue-500 text-white rounded-xl px-8 h-12 font-bold shadow-lg shadow-blue-600/20 active:scale-95 transition-all"
                 >
                   <Plus className="w-4 h-4 mr-2" />
-                  Add First Task
+                  {searchQuery ? "Clear Search" : "Add First Task"}
                 </Button>
               </motion.div>
             ) : (
