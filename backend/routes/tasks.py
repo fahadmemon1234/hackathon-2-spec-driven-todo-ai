@@ -32,6 +32,9 @@ class TaskUpdate(SQLModel):
     is_recurring: Optional[bool] = Field(default=None, description="Whether the task repeats")
     recurrence_rule: Optional[str] = Field(default=None, max_length=200, description="RRULE format recurrence pattern")
     next_occurrence: Optional[datetime] = Field(default=None, description="Next occurrence of recurring task")
+    reminder_time: Optional[datetime] = Field(default=None, description="Time to send reminder")
+    reminder_type: Optional[str] = Field(default=None, description="Type of reminder: email, push, sms")
+    reminder_offset: Optional[int] = Field(default=None, description="Minutes before due date to send reminder")
 
 router = APIRouter()
 
@@ -226,6 +229,12 @@ def update_task(
         task.recurrence_rule = task_data.recurrence_rule
     if task_data.next_occurrence is not None:
         task.next_occurrence = task_data.next_occurrence
+    if task_data.reminder_time is not None:
+        task.reminder_time = task_data.reminder_time
+    if task_data.reminder_type is not None:
+        task.reminder_type = task_data.reminder_type
+    if task_data.reminder_offset is not None:
+        task.reminder_offset = task_data.reminder_offset
 
     # If it's a recurring task, calculate the next occurrence
     if task.is_recurring and task.recurrence_rule:

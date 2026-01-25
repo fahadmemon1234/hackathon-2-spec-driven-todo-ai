@@ -79,6 +79,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     localStorage.setItem('auth-token', result.token);
     localStorage.setItem('user-data', JSON.stringify(result.user));
 
+    // Store user ID for WebSocket service
+    localStorage.setItem('current_user_id', result.user.id || result.user.email?.split('@')[0] || '');
+
     // Update user state
     setUser(result.user);
   };
@@ -88,6 +91,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     // Clear local storage as well
     localStorage.removeItem('auth-token');
     localStorage.removeItem('user-data');
+    localStorage.removeItem('current_user_id');
     setUser(null);
   };
 
@@ -107,6 +111,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     // Store token in localStorage for API client access
     localStorage.setItem('auth-token', result.token);
     localStorage.setItem('user-data', JSON.stringify(result.user));
+
+    // Store user ID for WebSocket service
+    localStorage.setItem('current_user_id', result.user.id || result.user.email?.split('@')[0] || '');
 
     // Update user state
     setUser(result.user);

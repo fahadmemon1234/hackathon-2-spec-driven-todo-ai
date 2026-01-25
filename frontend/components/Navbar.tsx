@@ -6,6 +6,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import { User, LogOut, LayoutGrid, Menu, X, Sparkles } from "lucide-react";
+import NotificationBell from "@/components/NotificationBell";
+import WebSocketService from "@/utils/websocket";
 
 const Navbar = () => {
   const { user, signOut } = useAuth();
@@ -20,6 +22,21 @@ useEffect(() => {
 
   return () => clearInterval(interval);
 }, []);
+
+// Initialize WebSocket connection when user is available
+useEffect(() => {
+  if (user) {
+    // Store user ID in localStorage for WebSocket service
+    localStorage.setItem("current_user_id", user.id || user.email?.split("@")[0] || "");
+    WebSocketService.connect(user.id || user.email?.split("@")[0]);
+  }
+
+  return () => {
+    if (user) {
+      WebSocketService.disconnect();
+    }
+  };
+}, [user]);
 
 
   return (
@@ -60,6 +77,9 @@ useEffect(() => {
                   </span>
                 </Button>
               </Link>
+
+              <NotificationBell />
+
               <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/5 border border-white/5 text-slate-300">
                 <div className="w-5 h-5 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-400 flex items-center justify-center">
                   <User size={10} className="text-white" />
@@ -102,6 +122,7 @@ useEffect(() => {
         <div className="md:hidden flex items-center">
           {user ? (
             <div className="flex items-center gap-2">
+              <NotificationBell />
               <button
                 onClick={() => setIsOpen(!isOpen)}
                 className="text-slate-300 hover:text-white p-2"

@@ -1,3 +1,5 @@
+version: '3.8'
+
 services:
   backend:
     build:
@@ -8,7 +10,7 @@ services:
     environment:
       DATABASE_URL: postgresql://neondb_owner:npg_Lvigx2SDY1ba@ep-billowing-violet-a4n2y54m-pooler.us-east-1.aws.neon.tech/Todo?sslmode=require&channel_binding=require
       REDIS_URL: redis://redis:6379
-      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      KAFKA_BROKERS: kafka:9092
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
     env_file:
       - .env
@@ -29,6 +31,55 @@ services:
       NEXT_PUBLIC_BACKEND_URL: http://localhost:8000
     depends_on:
       - backend
+    networks:
+      - app-network
+
+  websocket:
+    build:
+      context: .
+      dockerfile: Dockerfile.websocket
+    ports:
+      - "8080:8080"
+    environment:
+      KAFKA_BROKER: kafka:9092
+      ENVIRONMENT: development
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
+    env_file:
+      - .env
+    depends_on:
+      - kafka
+    networks:
+      - app-network
+
+  notification:
+    build:
+      context: .
+      dockerfile: Dockerfile.notification
+    environment:
+      DATABASE_URL: postgresql://user:password@db:5432/todo_db
+      KAFKA_BROKER: kafka:9092
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
+    env_file:
+      - .env
+    depends_on:
+      - db
+      - kafka
+    networks:
+      - app-network
+
+  recurring:
+    build:
+      context: .
+      dockerfile: Dockerfile.recurring
+    environment:
+      DATABASE_URL: postgresql://user:password@db:5432/todo_db
+      KAFKA_BROKER: kafka:9092
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
+    env_file:
+      - .env
+    depends_on:
+      - db
+      - kafka
     networks:
       - app-network
 

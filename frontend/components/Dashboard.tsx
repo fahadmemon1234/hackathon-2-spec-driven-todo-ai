@@ -17,10 +17,10 @@ import {
   Plus,
   Filter,
   Sparkles,
+  LayoutGrid,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { LayoutGrid } from "lucide-react";
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -109,6 +109,8 @@ const Dashboard = () => {
       setTasks(
         tasks.map((task) => (task.id === taskData.id ? updatedTask : task))
       );
+
+      // Determine action type for notification
       if (taskData.completed !== undefined) {
         if (taskData.completed) {
           toast.success("Task completed!");
@@ -118,6 +120,7 @@ const Dashboard = () => {
       } else {
         toast.success("Task updated successfully");
       }
+
       // Clear search query to show the updated task
       setSearchQuery("");
     } catch (error) {
@@ -140,20 +143,12 @@ const Dashboard = () => {
       recurrence_rule: task.recurrence_rule
     });
     setIsTaskModalOpen(true);
-    localStorage.setItem("openedModel", "true");
-    // if (typeof window !== "undefined") {
-    //   localStorage.setItem("openedModel", "true");
-    // }
   };
 
   // Handle closing the task form modal
   const handleCloseTaskModal = () => {
     setIsTaskModalOpen(false);
     setEditingTask(null);
-    localStorage.removeItem("openedModel");
-    // if (typeof window !== "undefined") {
-    //   localStorage.removeItem("openedModel");
-    // }
   };
 
   // Handle submitting the task form (both create and update)
@@ -193,6 +188,7 @@ const Dashboard = () => {
           toast.success("Task completed!");
         }
       }
+
       // Clear search query to show the updated task
       setSearchQuery("");
     } catch (error) {
@@ -240,19 +236,17 @@ const Dashboard = () => {
     }
   });
 
+  // Calculate tagged task statistics
+  const taggedTasks = sortedTasks.filter(task =>
+    task.tags && Array.isArray(task.tags) && task.tags.length > 0
+  );
+  const totalTagged = taggedTasks.length;
+  const inProgressTagged = taggedTasks.filter(t => !t.completed).length;
+  const completedTagged = taggedTasks.filter(t => t.completed).length;
+
   if (showLoader) {
     return <PremiumLoader onComplete={() => setShowLoader(false)} />;
   }
-
-  // 1. Pehle tagged tasks ko filter karein
-const taggedTasks = sortedTasks.filter(task =>
-  task.tags && Array.isArray(task.tags) && task.tags.length > 0
-);
-
-// 2. Ab stats sirf filtered tasks se calculate karein
-const totalTagged = taggedTasks.length;
-const inProgressTagged = taggedTasks.filter(t => !t.completed).length;
-const completedTagged = taggedTasks.filter(t => t.completed).length;
 
   return (
     <ProtectedRoute>
@@ -275,7 +269,7 @@ const completedTagged = taggedTasks.filter(t => t.completed).length;
                 <div className="p-2 bg-blue-600/10 rounded-lg">
                   <Sparkles className="text-blue-500 w-5 h-5" />
                 </div>
-                <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-blue-500/80">
+                <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-blue-500/80">
                   Personal Workspace
                 </span>
               </motion.div>
@@ -339,58 +333,55 @@ const completedTagged = taggedTasks.filter(t => t.completed).length;
             </div>
           </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-12">
-    {[
-      {
-        icon: Clock,
-        label: "Tagged Tasks", // Label update kiya
-        val: totalTagged,
-        color: "text-blue-500",
-        glow: "group-hover:shadow-[0_0_20px_rgba(59,130,246,0.15)]",
-      },
-      {
-        icon: Circle,
-        label: "Active Tags",
-        val: inProgressTagged,
-        color: "text-amber-500",
-        glow: "group-hover:shadow-[0_0_20px_rgba(245,158,11,0.15)]",
-      },
-      {
-        icon: CheckCircle,
-        label: "Tagged Done",
-        val: completedTagged,
-        color: "text-emerald-500",
-        glow: "group-hover:shadow-[0_0_20px_rgba(16,185,129,0.15)]",
-      },
-    ].map((stat, i) => (
-      <motion.div
-        key={i}
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: i * 0.1 }}
-        className={`group bg-slate-900/40 border border-white/5 rounded-[24px] p-6 backdrop-blur-xl transition-all duration-500 hover:border-white/10 ${stat.glow}`}
-      >
-        <div className="flex items-center gap-4">
-          <div
-            className={`p-4 rounded-2xl bg-slate-800/40 ${stat.color} group-hover:scale-110 transition-transform duration-500 shadow-inner`}
-          >
-            <stat.icon size={22} strokeWidth={2.5} />
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-12">
+            {[
+              {
+                icon: Clock,
+                label: "Tagged Tasks",
+                val: totalTagged,
+                color: "text-blue-500",
+              },
+              {
+                icon: Circle,
+                label: "Active Tags",
+                val: inProgressTagged,
+                color: "text-amber-500",
+              },
+              {
+                icon: CheckCircle,
+                label: "Tagged Done",
+                val: completedTagged,
+                color: "text-emerald-500",
+              },
+            ].map((stat, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.1 }}
+                className="group bg-slate-900/40 border border-white/5 rounded-[24px] p-6 backdrop-blur-xl transition-all duration-500 hover:border-white/10"
+              >
+                <div className="flex items-center gap-4">
+                  <div
+                    className={`p-4 rounded-2xl bg-slate-800/40 ${stat.color} group-hover:scale-110 transition-transform duration-500 shadow-inner`}
+                  >
+                    <stat.icon size={22} strokeWidth={2.5} />
+                  </div>
+                  <div>
+                    <p className="text-slate-500 text-[10px] uppercase tracking-[0.25em] font-black">
+                      {stat.label}
+                    </p>
+                    <div className="flex items-baseline gap-1">
+                      <p className="text-3xl font-black text-white mt-1 leading-none tracking-tight">
+                        {stat.val}
+                      </p>
+                      <div className={`w-1 h-1 rounded-full ${stat.color.replace('text', 'bg')} animate-pulse`} />
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
           </div>
-          <div>
-            <p className="text-slate-500 text-[10px] uppercase tracking-[0.25em] font-black">
-              {stat.label}
-            </p>
-            <div className="flex items-baseline gap-1">
-              <p className="text-3xl font-black text-white mt-1 leading-none tracking-tight">
-                {stat.val}
-              </p>
-              <div className={`w-1 h-1 rounded-full ${stat.color.replace('text', 'bg')} animate-pulse`} />
-            </div>
-          </div>
-        </div>
-      </motion.div>
-    ))}
-  </div>
 
           <main className="relative z-10">
             <div className="mb-10">
