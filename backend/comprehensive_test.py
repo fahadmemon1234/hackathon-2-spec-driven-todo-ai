@@ -30,9 +30,10 @@ def test_models():
     
     # Test creating instances of each model
     print("\nTesting model instantiation...")
-    
-    # Create a user
-    user = User(email="test@example.com", password_hash="hashed_password")
+
+    # Create a user with a unique email
+    unique_email = f"test_{uuid.uuid4()}@example.com"
+    user = User(email=unique_email, password_hash="hashed_password")
     print(f"User created: {user.email}")
     
     # Create a task associated with the user
