@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  zookeeper:
+    image: 'confluentinc/cp-zookeeper:7.3.0'
+    container_name: zookeeper
+    ports:
+      - '2181:2181'
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+      ZOOKEEPER_INIT_LIMIT: 5
+      ZOOKEEPER_SYNC_LIMIT: 2
+    networks:
+      - kafka-network
+    healthcheck:
+      test: ["CMD", "bash", "-c", "echo ruok | nc localhost 2181"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  kafka:
+    image: 'confluentinc/cp-kafka:7.3.0'
+    container_name: kafka
+    ports:
+      # Internal listener (container-to-container)
+      - '9092:9092'
+      # External listener (host access mapped to localhost:29092)
+      - '29092:29092'
+    environment:
+      # Zookeeper connection
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ZOOKEEPER_CONNECTION_TIMEOUT_MS: 60000
+
+      # Define listeners: PLAINTEXT for container communication, PLAINTEXT_HOST for host access
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,PLAINTEXT_HOST://0.0.0.0:29092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://host.docker.internal:29092
+
+      # Map listeners to security protocols
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+
+      # Set inter-broker communication to use PLAINTEXT listener
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+
+      # Single broker settings - reduce replication factors
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 1
+
+      # Other required settings
+      KAFKA_BROKER_ID: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+      KAFKA_DELETE_TOPIC_ENABLE: 'true'
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    networks:
+      - kafka-network
+
+networks:
+  kafka-network:
+    driver: bridge
