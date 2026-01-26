@@ -3,6 +3,23 @@ from typing import Optional, List
 from datetime import datetime
 import uuid
 from sqlalchemy import Column, JSON
+from enum import Enum
+
+
+class NotificationType(str, Enum):
+    TASK_CREATED = "task_created"
+    TASK_UPDATED = "task_updated"
+    TASK_COMPLETED = "task_completed"
+    TASK_DELETED = "task_deleted"
+    REMINDER = "reminder"
+    SYSTEM = "system"
+    GENERAL = "general"
+
+
+class NotificationStatus(str, Enum):
+    UNREAD = "unread"
+    READ = "read"
+    ARCHIVED = "archived"
 
 
 class User(SQLModel, table=True):
@@ -39,6 +56,24 @@ class Task(SQLModel, table=True):
     is_recurring: bool = Field(default=False)
     recurrence_rule: Optional[str] = Field(default=None, max_length=200, description="RRULE format recurrence pattern")
     next_occurrence: Optional[datetime] = Field(default=None)
+    reminder_time: Optional[datetime] = Field(default=None, description="Time to send reminder")
+    reminder_type: Optional[str] = Field(default=None, description="Type of reminder: email, push, sms")
+    reminder_offset: Optional[int] = Field(default=None, description="Minutes before due date to send reminder")
+
+
+class Notification(SQLModel, table=True):
+    __tablename__ = "notifications"
+
+    id: Optional[str] = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+    user_id: str = Field(description="User ID who receives the notification")
+    title: str = Field(max_length=200, description="Notification title")
+    message: str = Field(max_length=1000, description="Notification message content")
+    type: str = Field(default=NotificationType.GENERAL, description="Type of notification")
+    status: str = Field(default=NotificationStatus.UNREAD, description="Status of the notification")
+    related_task_id: Optional[str] = Field(default=None, description="Related task ID if applicable")
+    data: Optional[dict] = Field(default=None, sa_column=Column(JSON), description="Additional data as JSON")
+    created_at: datetime = Field(default_factory=datetime.utcnow, description="Creation timestamp")
+    read_at: Optional[datetime] = Field(default=None, description="Read timestamp")
 
 
 class ConversationBase(SQLModel):

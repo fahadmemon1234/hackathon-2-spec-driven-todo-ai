@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from routes import tasks
 from routes.auth import router as auth_router
 from routes.chat import router as chat_router
+from routes.notifications import router as notifications_router
 from db import create_db_and_tables
 from mcp_server import add_task, list_tasks, update_task, complete_task, delete_task
 
@@ -26,6 +27,7 @@ app.add_middleware(
 app.include_router(auth_router, prefix="/api")
 app.include_router(tasks.router, prefix="/api")
 app.include_router(chat_router, prefix="/api")
+app.include_router(notifications_router, prefix="/api")
 
 @app.get("/")
 def read_root():

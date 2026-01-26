@@ -177,6 +177,7 @@ def create_task(
 
     # Publish task created event
     from utils.event_publisher import EventPublisher
+    from utils.notification_utils import send_task_notification
     publisher = EventPublisher()
     try:
         publisher.publish_task_event("created", new_task, user_id)
@@ -184,6 +185,15 @@ def create_task(
         # If the task has a due date, publish a reminder event
         if new_task.due_date:
             publisher.publish_reminder_event(new_task, user_id)
+
+        # Send notification about the new task creation
+        send_task_notification(
+            session=session,
+            user_id=user_id,
+            task=new_task,
+            event_type="task_created",
+            custom_message=f"A new task '{new_task.title}' has been created!"
+        )
     finally:
         publisher.close()
 
@@ -252,6 +262,7 @@ def update_task(
 
     # Publish task updated event
     from utils.event_publisher import EventPublisher
+    from utils.notification_utils import send_task_notification
 
     publisher = EventPublisher()
     try:
@@ -260,6 +271,15 @@ def update_task(
         # If the task has a due date, publish a reminder event
         if task.due_date:
             publisher.publish_reminder_event(task, user_id)
+
+        # Send notification about the task update
+        send_task_notification(
+            session=session,
+            user_id=user_id,
+            task=task,
+            event_type="task_updated",
+            custom_message=f"The task '{task.title}' has been updated."
+        )
     finally:
         publisher.close()
 
@@ -345,10 +365,20 @@ def toggle_complete(
 
     # Publish task completed event
     from utils.event_publisher import EventPublisher
+    from utils.notification_utils import send_task_notification
 
     publisher = EventPublisher()
     try:
         publisher.publish_task_event("completed", task, user_id)
+
+        # Send notification about the task completion
+        send_task_notification(
+            session=session,
+            user_id=user_id,
+            task=task,
+            event_type="task_completed",
+            custom_message=f"The task '{task.title}' has been marked as completed!"
+        )
     finally:
         publisher.close()
 
