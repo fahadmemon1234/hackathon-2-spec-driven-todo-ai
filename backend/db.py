@@ -1,10 +1,12 @@
 from sqlmodel import create_engine, Session, SQLModel
-from dotenv import load_dotenv
+from config import DATABASE_URL
 import os
 
-load_dotenv()
-
-DATABASE_URL = os.getenv("DATABASE_URL", "")
+if not DATABASE_URL:
+    print("WARNING: DATABASE_URL not set in environment or secrets")
+    # Fallback to a default SQLite database if not set
+    DATABASE_URL = "sqlite:///./todo_app_default.db"
+    print(f"Using fallback database: {DATABASE_URL}")
 
 engine = create_engine(
     DATABASE_URL,
@@ -20,4 +22,9 @@ def get_session():
 def create_db_and_tables():
     # Import models to register them with SQLModel metadata
     from models import Task, Conversation, Message, User
-    SQLModel.metadata.create_all(engine)
+    try:
+        SQLModel.metadata.create_all(engine)
+        print("Database tables created successfully")
+    except Exception as e:
+        print(f"ERROR creating database tables: {str(e)}")
+        raise

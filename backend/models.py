@@ -1,9 +1,12 @@
 from sqlmodel import SQLModel, Field, Relationship
-from typing import Optional, List
+from typing import Optional, List, TYPE_CHECKING
 from datetime import datetime
 import uuid
 from sqlalchemy import Column, JSON
 from enum import Enum
+
+if TYPE_CHECKING:
+    pass
 
 
 class NotificationType(str, Enum):
@@ -24,7 +27,7 @@ class NotificationStatus(str, Enum):
 
 class User(SQLModel, table=True):
     id: Optional[str] = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
-    email: str = Field(unique=True, index=True)
+    email: str = Field(index=True, sa_column_kwargs={"unique": True})
     password_hash: str
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
@@ -51,7 +54,7 @@ class Task(SQLModel, table=True):
     )
 
     # New fields for Phase 5 - Advanced Features
-    tags: List[str] = Field(default=[], sa_column=Column(JSON))
+    tags: List[str] = Field(default_factory=list, sa_column=Column(JSON))
     due_date: Optional[datetime] = Field(default=None)
     is_recurring: bool = Field(default=False)
     recurrence_rule: Optional[str] = Field(default=None, max_length=200, description="RRULE format recurrence pattern")
@@ -59,6 +62,44 @@ class Task(SQLModel, table=True):
     reminder_time: Optional[datetime] = Field(default=None, description="Time to send reminder")
     reminder_type: Optional[str] = Field(default=None, description="Type of reminder: email, push, sms")
     reminder_offset: Optional[int] = Field(default=None, description="Minutes before due date to send reminder")
+
+    # New fields for recurring tasks feature
+    recurrence_end_date: Optional[datetime] = Field(default=None, description="Optional end date for recurrence")
+    recurrence_max_count: Optional[int] = Field(default=None, description="Maximum number of occurrences")
+    original_task_id: Optional[int] = Field(default=None, foreign_key="task.id", description="Reference to original task in recurrence series")
+    occurrence_number: Optional[int] = Field(default=1, description="Occurrence number in the recurrence series")
+
+    # Relationship to original task
+    original_task: Optional["Task"] = Relationship(
+        back_populates="child_tasks",
+        sa_relationship_kwargs={
+            "primaryjoin": "Task.original_task_id == Task.id",
+            "remote_side": "Task.id"
+        }
+    )
+
+    # Relationship to child tasks
+    child_tasks: List["Task"] = Relationship(
+        back_populates="original_task",
+        sa_relationship_kwargs={
+            "primaryjoin": "Task.id == Task.original_task_id",
+            "remote_side": "Task.original_task_id"
+        }
+    )
+
+    @property
+    def recurrence_display(self) -> Optional[str]:
+        """
+        Get a human-readable display text for the recurrence rule.
+
+        Returns:
+            Human-readable recurrence description or None if not recurring
+        """
+        if not self.is_recurring or not self.recurrence_rule:
+            return None
+
+        from utils.recurrence_utils import get_recurrence_display_text
+        return get_recurrence_display_text(self.recurrence_rule)
 
 
 class Notification(SQLModel, table=True):
@@ -68,8 +109,8 @@ class Notification(SQLModel, table=True):
     user_id: str = Field(description="User ID who receives the notification")
     title: str = Field(max_length=200, description="Notification title")
     message: str = Field(max_length=1000, description="Notification message content")
-    type: str = Field(default=NotificationType.GENERAL, description="Type of notification")
-    status: str = Field(default=NotificationStatus.UNREAD, description="Status of the notification")
+    type: str = Field(default=NotificationType.GENERAL.value)
+    status: str = Field(default=NotificationStatus.UNREAD.value)
     related_task_id: Optional[str] = Field(default=None, description="Related task ID if applicable")
     data: Optional[dict] = Field(default=None, sa_column=Column(JSON), description="Additional data as JSON")
     created_at: datetime = Field(default_factory=datetime.utcnow, description="Creation timestamp")
@@ -103,5 +144,5 @@ class Message(MessageBase, table=True):
     content: str = Field(nullable=False)
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
-    # Relationship to conversation
+    # Relationship to conversation 
     conversation: Conversation = Relationship(back_populates="messages")

@@ -1,0 +1,30 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: todo-app-config
+  namespace: todo-app
+data:
+  # Database configuration
+  DATABASE_URL: "postgresql://user:password@postgres:5432/todo_db"
+  
+  # Redis configuration
+  REDIS_URL: "redis://redis:6379"
+  
+  # Kafka configuration
+  KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
+  
+  # Dapr configuration
+  DAPR_HTTP_PORT: "3500"
+  DAPR_GRPC_PORT: "50001"
+  DAPR_APP_ID: "backend-service"
+  DAPR_PUBSUB_NAME: "kafka-pubsub"
+  DAPR_STATE_STORE_NAME: "statestore"
+  
+  # Application configuration
+  LOG_LEVEL: "info"
+  PORT: "8000"
+  
+  # Feature flags
+  ENABLE_RECURRING_TASKS: "true"
+  ENABLE_REMINDERS: "true"
+  ENABLE_DAPR_INTEGRATION: "true"

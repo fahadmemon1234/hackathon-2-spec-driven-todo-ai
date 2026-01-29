@@ -8,10 +8,12 @@ import { Card } from "@/components/ui/card";
 import {
   Calendar,
   Hash,
-  LayoutGrid,
+  Folder,
   RotateCw,
   Edit3,
   Trash2,
+  Clock,
+  Flag,
 } from "lucide-react";
 
 interface TaskCardProps {
@@ -79,9 +81,9 @@ const TaskCard: React.FC<TaskCardProps> = ({
   };
 
   const prioritySidebar: Record<string, string> = {
-    high: "bg-red-500 shadow-[2px_0_15px_rgba(239,68,68,0.5)]",
-    medium: "bg-amber-500 shadow-[2px_0_15px_rgba(245,158,11,0.4)]",
-    low: "bg-emerald-500 shadow-[2px_0_15px_rgba(16,185,129,0.3)]",
+    high: "bg-gradient-to-b from-red-500 to-red-600 shadow-[2px_0_15px_rgba(239,68,68,0.5)]",
+    medium: "bg-gradient-to-b from-amber-500 to-amber-600 shadow-[2px_0_15px_rgba(245,158,11,0.4)]",
+    low: "bg-gradient-to-b from-emerald-500 to-emerald-600 shadow-[2px_0_15px_rgba(16,185,129,0.3)]",
   };
 
   return (
@@ -90,15 +92,15 @@ const TaskCard: React.FC<TaskCardProps> = ({
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95 }}
-      className="relative group mb-4"
+      className="relative mb-4"
     >
       {/* Dynamic Priority Sidebar */}
       <div
-        className={`absolute left-0 top-3 bottom-3 w-[4px] rounded-r-full z-10 transition-all duration-500 ${prioritySidebar[priority] || "bg-slate-700"}`}
+        className={`absolute left-0 top-4 bottom-4 w-1 rounded-r-full z-10 transition-all duration-500 ${prioritySidebar[priority] || "bg-slate-700"}`}
       />
 
       <Card
-        className={`relative overflow-hidden pl-4 bg-slate-900/40 backdrop-blur-2xl border border-white/5 rounded-[24px] transition-all duration-500 group-hover:border-white/10 group-hover:bg-slate-800/40 ${completed ? "opacity-60" : ""}`}
+        className={`relative overflow-hidden pl-5 bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl transition-all duration-500 hover:border-slate-600/70 hover:shadow-lg hover:shadow-indigo-500/5 group ${completed ? "opacity-70" : ""}`}
       >
         <div className="p-5">
           <div className="flex gap-4">
@@ -107,10 +109,10 @@ const TaskCard: React.FC<TaskCardProps> = ({
               <Checkbox
                 checked={completed}
                 onCheckedChange={() => onToggle(id)}
-                className={`w-6 h-6 rounded-full border-2 transition-all duration-500 ${
+                className={`w-5 h-5 rounded-md border-2 transition-all duration-300 ${
                   completed
-                    ? "bg-blue-600 border-blue-600 shadow-[0_0_15px_rgba(37,99,235,0.4)]"
-                    : "border-slate-700 hover:border-blue-500"
+                    ? "bg-gradient-to-r from-indigo-600 to-purple-600 border-indigo-600 shadow-[0_0_10px_rgba(99,102,241,0.4)]"
+                    : "border-slate-600 hover:border-indigo-500 bg-slate-800/50"
                 }`}
               />
             </div>
@@ -119,20 +121,20 @@ const TaskCard: React.FC<TaskCardProps> = ({
               {/* Badges Row */}
               <div className="flex flex-wrap items-center gap-2 mb-3">
                 <span
-                  className={`text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg border ${priorityStyles[priority]}`}
+                  className={`text-[9px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-md border flex items-center gap-1 ${priorityStyles[priority]}`}
                 >
-                  {priority}
+                  <Flag size={10} className="text-current" /> {priority}
                 </span>
 
                 {category && (
-                  <span className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider bg-white/5 text-slate-400 px-2.5 py-1 rounded-lg border border-white/5">
-                    <LayoutGrid size={10} />
+                  <span className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider bg-slate-800/50 text-slate-400 px-2.5 py-1 rounded-md border border-slate-700/50">
+                    <Folder size={10} />
                     {category}
                   </span>
                 )}
 
                 {is_recurring && (
-                  <span className="flex items-center gap-1 text-[9px] font-bold bg-indigo-500/10 text-indigo-400 px-2.5 py-1 rounded-lg border border-indigo-500/20 uppercase tracking-widest">
+                  <span className="flex items-center gap-1 text-[9px] font-bold bg-indigo-500/10 text-indigo-400 px-2.5 py-1 rounded-md border border-indigo-500/20 uppercase tracking-widest">
                     <RotateCw size={10} className="animate-spin-slow" />
                     Recurring
                   </span>
@@ -141,14 +143,14 @@ const TaskCard: React.FC<TaskCardProps> = ({
 
               {/* Title & Description */}
               <h3
-                className={`text-lg font-bold tracking-tight transition-all duration-300 ${completed ? "line-through text-slate-600" : "text-white"}`}
+                className={`text-lg font-bold tracking-tight transition-all duration-300 ${completed ? "line-through text-slate-500" : "text-white"}`}
               >
                 {title}
               </h3>
 
               {description && (
                 <p
-                  className={`mt-1.5 text-sm leading-relaxed line-clamp-2 ${completed ? "text-slate-700" : "text-slate-400"}`}
+                  className={`mt-2 text-sm leading-relaxed ${completed ? "text-slate-600" : "text-slate-400"}`}
                 >
                   {description}
                 </p>
@@ -160,9 +162,9 @@ const TaskCard: React.FC<TaskCardProps> = ({
                   {tags.map((tag, idx) => (
                     <span
                       key={idx}
-                      className="flex items-center gap-1 text-[10px] font-medium px-2.5 py-1 rounded-full bg-blue-500/5 text-blue-400/80 border border-blue-500/10 hover:border-blue-500/30 transition-colors"
+                      className="flex items-center gap-1 text-[10px] font-medium px-2.5 py-1 rounded-full bg-indigo-500/10 text-indigo-300 border border-indigo-500/20"
                     >
-                      <Hash size={10} className="text-blue-500/50" />
+                      <Hash size={10} className="text-indigo-400" />
                       {tag}
                     </span>
                   ))}
@@ -173,18 +175,18 @@ const TaskCard: React.FC<TaskCardProps> = ({
         </div>
 
         {/* Footer Info & Actions */}
-        <div className="flex items-center justify-between px-6 py-3 bg-black/20 border-t border-white/5">
+        <div className="flex items-center justify-between px-5 py-3 bg-slate-800/30 border-t border-slate-700/50">
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-600 uppercase tracking-wider">
-              <Calendar size={12} className="opacity-50" />
+            <div className="flex items-center gap-1.5 text-[10px] font-medium text-slate-500">
+              <Clock size={12} className="text-slate-600" />
               <span>Created: {formatDate(createdAt)}</span>
             </div>
 
             {due_date && (
               <div
-                className={`flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider ${completed ? "text-slate-700" : "text-amber-500/80"}`}
+                className={`flex items-center gap-1.5 text-[10px] font-medium ${completed ? "text-slate-600" : "text-amber-500"}`}
               >
-                <div className="w-1 h-1 rounded-full bg-current" />
+                <Calendar size={12} className="text-current" />
                 Due: {formatDate(due_date)}
               </div>
             )}
@@ -207,7 +209,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
                   recurrence_rule,
                 })
               }
-              className="h-8 w-8 text-slate-500 hover:text-white hover:bg-white/5 rounded-full"
+              className="h-8 w-8 text-slate-500 hover:text-indigo-400 hover:bg-indigo-500/10 rounded-md transition-colors"
             >
               <Edit3 size={14} />
             </Button>
@@ -215,7 +217,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
               variant="ghost"
               size="icon"
               onClick={() => onDelete(id)}
-              className="h-8 w-8 text-slate-500 hover:text-red-400 hover:bg-red-400/5 rounded-full"
+              className="h-8 w-8 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-md transition-colors"
             >
               <Trash2 size={14} />
             </Button>

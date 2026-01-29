@@ -3,7 +3,7 @@ Utility functions to send notifications based on various events
 """
 from sqlmodel import Session
 from datetime import datetime
-from models import Notification, User, Task, NotificationType
+from backend.models import Notification, User, Task, NotificationType
 from schemas.notification import CreateNotificationRequest
 from crud.notification import create_notification
 from enum import Enum

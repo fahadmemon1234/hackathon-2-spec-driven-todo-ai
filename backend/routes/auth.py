@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 from jose import jwt
 import os
 import hashlib
+from config import BETTER_AUTH_SECRET as CONFIG_BETTER_AUTH_SECRET
 
 router = APIRouter()
 
@@ -27,82 +28,110 @@ def hash_password(password: str) -> str:
 
 @router.post("/auth/signup")
 async def signup(user_data: UserCreate):
-    with Session(engine) as session:
-        # Check if user already exists
-        existing_user = session.exec(select(User).where(User.email == user_data.email)).first()
-        if existing_user:
-            raise HTTPException(status_code=400, detail="User already exists")
+    try:
+        with Session(engine) as session:
+            # Check if user already exists
+            existing_user = session.exec(select(User).where(User.email == user_data.email)).first()
+            if existing_user:
+                raise HTTPException(status_code=400, detail="User already exists")
 
-        # Hash the password
-        password_hash = hash_password(user_data.password)
+            # Hash the password
+            password_hash = hash_password(user_data.password)
 
-        # Create a new user in the database
-        user = User(
-            email=user_data.email,
-            password_hash=password_hash
-        )
+            # Create a new user in the database
+            user = User(
+                email=user_data.email,
+                password_hash=password_hash
+            )
 
-        session.add(user)
-        session.commit()
-        session.refresh(user)
+            session.add(user)
+            session.commit()
+            session.refresh(user)
 
-        # Generate a proper JWT token
-        secret = os.getenv("BETTER_AUTH_SECRET")
-        if not secret:
-            raise RuntimeError("BETTER_AUTH_SECRET not set in .env")
+            # Generate a proper JWT token
+            secret = CONFIG_BETTER_AUTH_SECRET
+            if not secret:
+                # Log the error for debugging
+                print("ERROR: BETTER_AUTH_SECRET not set in environment or secrets")
+                raise HTTPException(status_code=500, detail="Server configuration error: Authentication secret not set")
 
-        # Create JWT payload with user information
-        payload = {
-            "user": {
-                "id": user.id,
-                "email": user.email
-            },
-            "exp": datetime.utcnow() + timedelta(days=7),  # Token expires in 7 days
-            "iat": datetime.utcnow()  # Issued at time
-        }
+            # Create JWT payload with user information
+            payload = {
+                "user": {
+                    "id": user.id,
+                    "email": user.email
+                },
+                "exp": datetime.utcnow() + timedelta(days=7),  # Token expires in 7 days
+                "iat": datetime.utcnow()  # Issued at time
+            }
 
-        token = jwt.encode(payload, secret, algorithm="HS256")
+            try:
+                token = jwt.encode(payload, secret, algorithm="HS256")
+            except Exception as e:
+                print(f"ERROR: Failed to encode JWT token: {str(e)}")
+                raise HTTPException(status_code=500, detail="Authentication error: Failed to generate token")
 
-        return {
-            "user": {
-                "id": user.id,
-                "email": user.email
-            },
-            "token": token
-        }
+            return {
+                "user": {
+                    "id": user.id,
+                    "email": user.email
+                },
+                "token": token
+            }
+    except HTTPException:
+        # Re-raise HTTP exceptions as-is
+        raise
+    except Exception as e:
+        # Log unexpected errors
+        print(f"ERROR in signup: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error during signup")
 
 @router.post("/auth/login")
 async def login(user_data: UserLogin):
-    with Session(engine) as session:
-        # Check if user exists and password matches
-        user = session.exec(select(User).where(User.email == user_data.email)).first()
-        if not user or user.password_hash != hash_password(user_data.password):
-            raise HTTPException(status_code=401, detail="Invalid credentials")
+    try:
+        with Session(engine) as session:
+            # Check if user exists and password matches
+            user = session.exec(select(User).where(User.email == user_data.email)).first()
+            if not user or user.password_hash != hash_password(user_data.password):
+                raise HTTPException(status_code=401, detail="Invalid credentials")
 
-        # Generate a proper JWT token
-        secret = os.getenv("BETTER_AUTH_SECRET")
-        if not secret:
-            raise RuntimeError("BETTER_AUTH_SECRET not set in .env")
+            # Generate a proper JWT token
+            secret = CONFIG_BETTER_AUTH_SECRET
+            if not secret:
+                # Log the error for debugging
+                print("ERROR: BETTER_AUTH_SECRET not set in environment or secrets")
+                raise HTTPException(status_code=500, detail="Server configuration error: Authentication secret not set")
 
-        # Create JWT payload with user information
-        payload = {
-            "user": {
-                "id": user.id,
-                "email": user.email
-            },
-            "exp": datetime.utcnow() + timedelta(days=7),  # Token expires in 7 days
-            "iat": datetime.utcnow()  # Issued at time
-        }
+            # Create JWT payload with user information
+            payload = {
+                "user": {
+                    "id": user.id,
+                    "email": user.email
+                },
+                "exp": datetime.utcnow() + timedelta(days=7),  # Token expires in 7 days
+                "iat": datetime.utcnow()  # Issued at time
+            }
 
-        token = jwt.encode(payload, secret, algorithm="HS256")
+            try:
+                token = jwt.encode(payload, secret, algorithm="HS256")
+            except Exception as e:
+                print(f"ERROR: Failed to encode JWT token: {str(e)}")
+                raise HTTPException(status_code=500, detail="Authentication error: Failed to generate token")
 
-        return {
-            "user": {
-                "id": user.id,
-                "email": user.email
-            },
-            "token": token
-        }
+            return {
+                "user": {
+                    "id": user.id,
+                    "email": user.email
+                },
+                "token": token
+            }
+    except HTTPException:
+        # Re-raise HTTP exceptions as-is
+        raise
+    except Exception as e:
+        # Log unexpected errors
+        print(f"ERROR in login: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error during login")
 
 @router.post("/auth/logout")
 async def logout():

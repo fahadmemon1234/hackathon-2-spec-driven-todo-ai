@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: recurring-consumer
+  namespace: todo-app
+  labels:
+    app: recurring-consumer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: recurring-consumer
+  template:
+    metadata:
+      labels:
+        app: recurring-consumer
+      annotations:
+        dapr.io/enabled: "true"
+        dapr.io/app-id: "recurring-consumer"
+        dapr.io/config: "dapr-config"
+        dapr.io/components: "kafka-pubsub,statestore,local-secret-store"
+    spec:
+      containers:
+      - name: recurring-consumer
+        image: todo-app-recurring-consumer:minikube
+        env:
+        - name: DATABASE_URL
+          value: "postgresql://user:password@postgres:5432/todo_db"
+        - name: KAFKA_BOOTSTRAP_SERVERS
+          value: "kafka:9092"
+        - name: REDIS_URL
+          value: "redis://redis:6379"
+        - name: DAPR_HTTP_PORT
+          value: "3500"
+        - name: DAPR_STATE_STORE_NAME
+          value: "statestore"
+        - name: DAPR_PUBSUB_NAME
+          value: "kafka-pubsub"
+        command: ["python", "services/recurring_consumer.py"]

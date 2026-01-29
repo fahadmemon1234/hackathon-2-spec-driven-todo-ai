@@ -5,7 +5,7 @@ Example code for updating an existing task in the database
 from sqlmodel import Session
 from datetime import datetime
 from db import engine
-from models import Task
+from backend.models import Task
 from routes.tasks import TaskUpdate
 
 

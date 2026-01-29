@@ -9,7 +9,7 @@ import sys
 import os
 # Add the backend directory to the path so we can import from models
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'backend'))
-from models import Task
+from backend.models import Task
 from dateutil.rrule import rrulestr
 # Import recurrence utils from backend
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'backend', 'utils'))

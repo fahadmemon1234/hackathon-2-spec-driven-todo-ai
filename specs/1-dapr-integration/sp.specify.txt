@@ -1,0 +1,62 @@
+Todo Application – Dapr Integration (Local Docker Compose)
+
+Overview:
+Complete Dapr implementation for the backend using Docker Compose (no Kubernetes / Minikube). The goal is to leverage Dapr's building blocks to enhance the application's capabilities with pub/sub messaging, state management, cron bindings, secrets management, and service invocation - all running locally without Kubernetes or cloud infrastructure.
+
+Current Status:
+- Kafka is running locally via Docker (topics healthy)
+- Backend service is running (HTTP port 8000)
+- No Dapr sidecars or components implemented yet
+
+Requirements:
+
+1. Dapr Pub/Sub
+- Use Kafka as the message broker
+- Component name: kafka-pubsub
+- Topics: task-events, reminders, task-updates
+- Explain how backend publishes and subscribes using Dapr HTTP APIs
+
+2. Dapr State Store
+- Use Redis as state store
+- Component name: statestore
+- Use cases: Store task state, recurrence metadata, reminder schedules
+- Include example state key structure
+
+3. Dapr Bindings (Cron)
+- Use Dapr cron binding
+- Trigger scheduled reminder events
+- Publish reminder events to Kafka using pub/sub
+- Explain how cron + pubsub work together
+
+4. Dapr Secrets
+- Define secret abstraction for: Kafka brokers, Redis host/password
+- Explain how backend reads secrets via Dapr API
+- No cloud secret store, local-only
+
+5. Dapr Service Invocation
+- App ID: backend-service
+- Explain internal service-to-service calls using Dapr
+- Include example HTTP invocation flow
+
+Architecture:
+- Dapr sidecar runs alongside the backend service
+- Components connect to Kafka (pub/sub), Redis (state), and file-based secrets
+- Docker Compose orchestrates all services
+
+Implementation Flow:
+1. Backend service starts with Dapr sidecar
+2. Dapr sidecar loads component configurations
+3. Backend uses Dapr HTTP APIs for all Dapr operations
+4. Cron binding triggers scheduled operations
+5. Subscriptions receive messages from Kafka topics
+
+Event Flows:
+- Task Creation: Store task state → Publish task event
+- Reminder Scheduling: Store reminder → Cron trigger → Publish reminder
+- Recurring Tasks: Store recurrence → Cron trigger → Create new task
+
+Verification:
+- All Dapr components connect properly
+- HTTP APIs return expected responses
+- Docker Compose starts without errors
+- Events flow correctly between services

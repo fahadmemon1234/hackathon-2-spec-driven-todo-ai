@@ -5,7 +5,7 @@ Example code for using the notification system
 from sqlmodel import Session
 from datetime import datetime
 from db import engine
-from models import User, Task
+from backend.models import User, Task
 from utils.notification_utils import (
     send_task_notification,
     send_general_notification,

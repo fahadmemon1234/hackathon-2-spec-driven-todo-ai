@@ -18,6 +18,42 @@ services:
       - kafka
     networks:
       - app-network
+    # Mount components directory for Dapr
+    volumes:
+      - ./components:/components
+
+  dapr-placement:
+    image: daprio/dapr:latest
+    command: ["./placement", "-port", "50005"]
+    ports:
+      - "50005:50005"
+    networks:
+      - app-network
+
+  dapr-sidecar:
+    image: daprio/dapr:latest
+    command: ["./daprd",
+      "--app-id", "backend-service",
+      "--app-port", "8000",
+      "--dapr-http-port", "3500",
+      "--dapr-grpc-port", "50001",
+      "--placement-host-address", "dapr-placement:50005",
+      "--components-path", "/components",
+      "--config", "/dapr-config.yaml",
+      "--log-level", "debug",
+      "--enable-api-logging"]
+    ports:
+      - "3500:3500"
+      - "50001:50001"
+    depends_on:
+      - backend
+      - dapr-placement
+    networks:
+      - app-network
+    volumes:
+      - ./components:/components
+      - ./secrets:/secrets
+      - ./dapr-config.yaml:/dapr-config.yaml
 
   frontend:
     build:
@@ -68,20 +104,35 @@ services:
       - zookeeper
     ports:
       - "9092:9092"
+      - "29092:29092"
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
 
-      # Kafka listeners
-      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
+      # Kafka listeners - define both PLAINTEXT and PLAINTEXT_HOST
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,PLAINTEXT_HOST://0.0.0.0:29092
 
-      # Important: advertise both internal and external addresses
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:9092
+      # Advertise both internal and external addresses
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
 
       # Map listener names to protocol
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
 
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    networks:
+      - app-network
+
+  recurring-consumer:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    command: python services/recurring_consumer.py
+    environment:
+      DATABASE_URL: postgresql://user:password@db:5432/todo_db
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    depends_on:
+      - db
+      - kafka
     networks:
       - app-network
 

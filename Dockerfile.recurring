@@ -2,9 +2,13 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
+# Copy the entire services directory
 COPY services/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY services/recurring_task_service.py .
+COPY services/ /app/
 
-CMD ["python", "recurring_task_service.py"]
+# Copy the entire backend directory to ensure all modules are available
+COPY backend/ ./backend/
+
+CMD ["python", "recurring_consumer.py"]

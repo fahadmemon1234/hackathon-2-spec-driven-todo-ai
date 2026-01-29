@@ -22,11 +22,11 @@ COPY ./backend/requirements.txt /app/requirements.txt
 # Install Python dependencies
 RUN pip install --upgrade pip && pip install -r requirements.txt
 
-# Copy project
-COPY ./backend/ /app/
+# Copy the entire project to preserve the directory structure
+COPY . /app/
 
 # Expose port
 EXPOSE 8000
 
 # Run the entrypoint script
-CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["python", "/app/start_backend.py"]
