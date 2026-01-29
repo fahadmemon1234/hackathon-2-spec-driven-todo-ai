@@ -60,9 +60,10 @@ services:
       context: .
       dockerfile: Dockerfile.frontend
     ports:
-      - "3001:3000"
+      - "3000:3000"
     environment:
       NEXT_PUBLIC_BACKEND_URL: http://localhost:8000
+      BACKEND_INTERNAL_URL: http://backend:8000
     depends_on:
       - backend
     networks:
@@ -125,8 +126,7 @@ services:
   recurring-consumer:
     build:
       context: .
-      dockerfile: Dockerfile.backend
-    command: python services/recurring_consumer.py
+      dockerfile: Dockerfile.recurring
     environment:
       DATABASE_URL: postgresql://user:password@db:5432/todo_db
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092

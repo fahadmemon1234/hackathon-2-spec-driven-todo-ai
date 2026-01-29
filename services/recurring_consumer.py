@@ -8,14 +8,23 @@ task completion events to generate the next instance of recurring tasks.
 
 import json
 import logging
+import sys
+import os
+
+# Add the project root and backend directory to the Python path to resolve imports
+current_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(current_dir)  # Go up one level to project root
+backend_dir = os.path.join(project_root, 'backend')
+
+sys.path.insert(0, project_root)
+sys.path.insert(0, backend_dir)
+
 from kafka import KafkaConsumer
 from sqlmodel import create_engine, Session
-from backend.models import Task, User
+from backend.models import Task, User  # Use absolute import from backend
 from datetime import datetime
-from utils.recurrence_utils import calculate_next_occurrence, validate_recurrence_end_condition
-import os
+from backend.utils.recurrence_utils import calculate_next_occurrence, validate_recurrence_end_condition  # Use absolute import from backend
 import signal
-import sys
 from typing import Optional
 
 

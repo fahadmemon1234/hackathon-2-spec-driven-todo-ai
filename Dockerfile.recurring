@@ -1,14 +1,29 @@
+# Use the official Python image from the Docker Hub
 FROM python:3.11-slim
 
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
+
+# Set work directory
 WORKDIR /app
 
-# Copy the entire services directory
-COPY services/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Install system dependencies
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        postgresql-client \
+        build-essential \
+        libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
 
-COPY services/ /app/
+# Copy project requirements
+COPY ./backend/requirements.txt /app/requirements.txt
 
-# Copy the entire backend directory to ensure all modules are available
-COPY backend/ ./backend/
+# Install Python dependencies
+RUN pip install --upgrade pip && pip install -r requirements.txt
 
-CMD ["python", "recurring_consumer.py"]
+# Copy the entire project to preserve the directory structure
+COPY . /app/
+
+# Run the recurring consumer
+CMD ["python", "/app/services/recurring_consumer.py"]

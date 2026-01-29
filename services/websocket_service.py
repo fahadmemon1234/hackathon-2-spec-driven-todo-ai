@@ -1,3 +1,14 @@
+import sys
+import os
+
+# Add the project root and backend directory to the Python path to resolve imports
+current_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(current_dir)  # Go up one level to project root
+backend_dir = os.path.join(project_root, 'backend')
+
+sys.path.insert(0, project_root)
+sys.path.insert(0, backend_dir)
+
 import asyncio
 import json
 import logging
@@ -8,7 +19,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from kafka import KafkaConsumer
 import threading
 import uvicorn
-import os
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

@@ -7,7 +7,9 @@ export async function POST(req: Request) {
     const { email, password } = body;
 
     // Forward the signup request to the backend API
-    const backendResponse = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/signup`, {
+    // Use BACKEND_INTERNAL_URL for server-side calls, fallback to NEXT_PUBLIC_BACKEND_URL
+    const backendUrl = process.env.BACKEND_INTERNAL_URL || process.env.NEXT_PUBLIC_BACKEND_URL;
+    const backendResponse = await fetch(`${backendUrl}/api/auth/signup`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

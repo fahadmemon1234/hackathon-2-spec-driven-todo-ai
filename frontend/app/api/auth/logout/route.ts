@@ -4,7 +4,9 @@ import { cookies } from 'next/headers';
 export async function POST(req: Request) {
   try {
     // Forward the logout request to the backend API
-    const backendResponse = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/logout`, {
+    // Use BACKEND_INTERNAL_URL for server-side calls, fallback to NEXT_PUBLIC_BACKEND_URL
+    const backendUrl = process.env.BACKEND_INTERNAL_URL || process.env.NEXT_PUBLIC_BACKEND_URL;
+    const backendResponse = await fetch(`${backendUrl}/api/auth/logout`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
