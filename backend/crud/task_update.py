@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from typing import Optional
 from sqlmodel import Session, select
-from models import Task
+from backend.models import Task
 from schemas.task_update import UpdateTaskRequest
 
 

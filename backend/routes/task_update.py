@@ -5,7 +5,7 @@ from db import get_session
 from dependencies import get_current_user_id
 from schemas.task_update import UpdateTaskRequest, TaskResponse
 from crud.task_update import update_task
-from models import Task
+from backend.models import Task
 
 router = APIRouter()
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Test script to verify that the SQLAlchemy relationship error is fixed."""
 
-from models import Task, Conversation, Message, User
+from backend.models import Task, Conversation, Message, User
 from db import create_db_and_tables
 from sqlmodel import SQLModel
 from sqlalchemy import create_engine

@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { X, Tag, Calendar, Repeat, Hash } from "lucide-react";
+import { X, Folder, Calendar, Repeat, Hash, Flag, Target } from "lucide-react";
 
 interface TaskFormModalProps {
   isOpen: boolean;
@@ -49,6 +49,9 @@ const TaskFormModal: React.FC<TaskFormModalProps> = ({
   const [dueDate, setDueDate] = useState("");
   const [isRecurring, setIsRecurring] = useState(false);
   const [recurrenceRule, setRecurrenceRule] = useState("");
+  const [endCondition, setEndCondition] = useState<"none" | "after" | "on">("none");
+  const [endAfterCount, setEndAfterCount] = useState<number>(1);
+  const [endDate, setEndDate] = useState<string>("");
 
   // Function to convert database date string to "YYYY-MM-DDTHH:mm"
   const formatForInput = (dateStr?: string) => {
@@ -83,6 +86,39 @@ const TaskFormModal: React.FC<TaskFormModalProps> = ({
       setDueDate(formatForInput(initialData.due_date)); // Proper Formatting
       setIsRecurring(initialData.is_recurring || false);
       setRecurrenceRule(initialData.recurrence_rule || "");
+
+      // Parse the recurrence rule to extract end conditions if present
+      if (initialData.recurrence_rule) {
+        const ruleParts = initialData.recurrence_rule.split(';');
+        const countPart = ruleParts.find(part => part.startsWith('COUNT='));
+        const untilPart = ruleParts.find(part => part.startsWith('UNTIL='));
+
+        if (countPart) {
+          const countValue = parseInt(countPart.split('=')[1]);
+          setEndCondition("after");
+          setEndAfterCount(countValue);
+        } else if (untilPart) {
+          const untilValue = untilPart.split('=')[1];
+          setEndCondition("on");
+          // Convert UNTIL format to datetime-local format (YYYY-MM-DDTHH:mm)
+          if (untilValue.length >= 8) {
+            const year = untilValue.substring(0, 4);
+            const month = untilValue.substring(4, 6);
+            const day = untilValue.substring(6, 8);
+            let timePart = "T00:00";
+            if (untilValue.length >= 13) {
+              const hour = untilValue.substring(9, 11);
+              const minute = untilValue.substring(11, 13);
+              timePart = `T${hour}:${minute}`;
+            }
+            setEndDate(`${year}-${month}-${day}${timePart}`);
+          }
+        } else {
+          setEndCondition("none");
+        }
+      } else {
+        setEndCondition("none");
+      }
     } else if (!isOpen) {
       // Reset form on close
       setTitle("");
@@ -94,6 +130,9 @@ const TaskFormModal: React.FC<TaskFormModalProps> = ({
       setDueDate("");
       setIsRecurring(false);
       setRecurrenceRule("");
+      setEndCondition("none");
+      setEndAfterCount(1);
+      setEndDate("");
     }
   }, [initialData, isOpen]);
 
@@ -112,6 +151,22 @@ const TaskFormModal: React.FC<TaskFormModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Construct the recurrence rule based on selections
+    let finalRecurrenceRule = recurrenceRule;
+
+    if (isRecurring && recurrenceRule) {
+      // Add end condition if specified
+      if (endCondition === "after" && endAfterCount > 0) {
+        finalRecurrenceRule = `${recurrenceRule};COUNT=${endAfterCount}`;
+      } else if (endCondition === "on" && endDate) {
+        // Convert the date to the required format for UNTIL (YYYYMMDDTHHMMSSZ)
+        const dateObj = new Date(endDate);
+        const untilDate = dateObj.toISOString().replace(/[-:]/g, '').substring(0, 15) + 'Z';
+        finalRecurrenceRule = `${recurrenceRule};UNTIL=${untilDate}`;
+      }
+    }
+
     onSubmit(
       {
         title,
@@ -121,8 +176,7 @@ const TaskFormModal: React.FC<TaskFormModalProps> = ({
         tags: tags.length > 0 ? tags : undefined,
         due_date: dueDate || undefined,
         is_recurring: isRecurring,
-        recurrence_rule:
-          isRecurring && recurrenceRule ? recurrenceRule : undefined,
+        recurrence_rule: isRecurring && finalRecurrenceRule ? finalRecurrenceRule : undefined,
       },
       initialData?.id,
     );
@@ -139,44 +193,44 @@ const TaskFormModal: React.FC<TaskFormModalProps> = ({
           exit={{ opacity: 0 }}
         >
           <motion.div
-            className="fixed inset-0 bg-slate-950/90 backdrop-blur-md"
+            className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm"
             onClick={onClose}
           />
 
           <motion.div
-            className="relative bg-slate-900 border border-white/10 w-full max-w-2xl rounded-[32px] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+            className="relative bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700/50 w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
             initial={{ scale: 0.95, y: 20, opacity: 0 }}
             animate={{ scale: 1, y: 0, opacity: 1 }}
             exit={{ scale: 0.95, y: 20, opacity: 0 }}
           >
-            <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-blue-500 to-transparent opacity-50" />
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 to-purple-500" />
 
             {/* Header */}
-            <div className="p-6 md:p-8 flex justify-between items-start border-b border-white/5">
+            <div className="p-6 md:p-8 flex justify-between items-start border-b border-slate-700/50">
               <div>
-                <h2 className="text-2xl font-bold text-white tracking-tight italic">
-                  {initialData ? "Refine Task" : "New Objective"}
+                <h2 className="text-xl md:text-2xl font-bold text-white tracking-tight">
+                  {initialData ? "Edit Task" : "Create New Task"}
                 </h2>
-                <p className="text-slate-500 text-[10px] uppercase tracking-[0.2em] font-black mt-1">
+                <p className="text-slate-500 text-xs uppercase tracking-wider font-medium mt-1">
                   {initialData
-                    ? "Modify existing milestone"
-                    : "Establish a new target"}
+                    ? "Update your existing task"
+                    : "Define a new objective"}
                 </p>
               </div>
               <button
                 onClick={onClose}
-                className="p-2 rounded-full bg-white/5 text-slate-400 hover:text-white transition-all"
+                className="p-2 rounded-lg bg-slate-700/50 text-slate-400 hover:text-white hover:bg-slate-600/50 transition-all"
               >
                 <X size={20} />
               </button>
             </div>
 
             {/* Content */}
-            <div className="p-6 md:p-8 overflow-y-auto custom-scrollbar">
+            <div className="p-6 md:p-8 overflow-y-auto">
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 ml-1">
+                    <label className="text-xs font-medium text-slate-400 ml-1">
                       Title *
                     </label>
                     <input
@@ -184,57 +238,57 @@ const TaskFormModal: React.FC<TaskFormModalProps> = ({
                       value={title}
                       onChange={(e) => setTitle(e.target.value)}
                       required
-                      className="w-full px-4 py-3 bg-black/20 border border-white/5 rounded-2xl text-white text-sm focus:border-blue-500/50 outline-none transition-all"
+                      className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700/50 rounded-lg text-white text-sm focus:border-indigo-500/50 outline-none transition-all"
                       placeholder="What needs to be done?"
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 ml-1">
+                    <label className="text-xs font-medium text-slate-400 ml-1">
                       Category
                     </label>
                     <div className="relative">
-                      <Tag
+                      <Folder
                         size={14}
-                        className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600"
+                        className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"
                       />
                       <input
                         type="text"
                         value={category}
                         onChange={(e) => setCategory(e.target.value)}
-                        className="w-full pl-11 pr-4 py-3 bg-black/20 border border-white/5 rounded-2xl text-white text-sm focus:border-blue-500/50 outline-none transition-all"
-                        placeholder="e.g. Work, Health"
+                        className="w-full pl-11 pr-4 py-3 bg-slate-800/50 border border-slate-700/50 rounded-lg text-white text-sm focus:border-indigo-500/50 outline-none transition-all"
+                        placeholder="e.g. Work, Personal"
                       />
                     </div>
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 ml-1">
+                  <label className="text-xs font-medium text-slate-400 ml-1">
                     Description
                   </label>
                   <textarea
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    className="w-full px-4 py-3 bg-black/20 border border-white/5 rounded-2xl text-slate-300 text-sm focus:border-blue-500/50 outline-none min-h-[80px] resize-none"
+                    className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700/50 rounded-lg text-slate-300 text-sm focus:border-indigo-500/50 outline-none min-h-[80px] resize-none"
                     placeholder="Add details..."
                   />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-3">
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 ml-1">
-                      Urgency
+                    <label className="text-xs font-medium text-slate-400 ml-1">
+                      Priority
                     </label>
-                    <div className="flex gap-2 p-1.5 bg-black/30 rounded-2xl border border-white/5">
+                    <div className="flex gap-2 p-1.5 bg-slate-800/50 rounded-lg border border-slate-700/50">
                       {["low", "medium", "high"].map((p) => (
                         <button
                           key={p}
                           type="button"
                           onClick={() => setPriority(p)}
-                          className={`flex-1 py-2 text-[10px] font-black rounded-xl transition-all uppercase ${
+                          className={`flex-1 py-2 text-xs font-medium rounded-md transition-all uppercase ${
                             priority === p
-                              ? "bg-blue-600 text-white"
-                              : "text-slate-500 hover:text-slate-300"
+                              ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-[0_0_10px_rgba(99,102,241,0.3)]"
+                              : "text-slate-500 hover:text-slate-300 hover:bg-slate-700/50"
                           }`}
                         >
                           {p}
@@ -243,33 +297,33 @@ const TaskFormModal: React.FC<TaskFormModalProps> = ({
                     </div>
                   </div>
                   <div className="space-y-3">
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 ml-1">
+                    <label className="text-xs font-medium text-slate-400 ml-1">
                       Deadline
                     </label>
                     <div className="relative">
                       <Calendar
                         size={14}
-                        className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600"
+                        className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"
                       />
                       <input
                         type="datetime-local"
                         value={dueDate}
                         onChange={(e) => setDueDate(e.target.value)}
-                        className="w-full pl-11 pr-4 py-3 bg-black/20 border border-white/5 rounded-2xl text-white text-sm focus:border-blue-500/50 outline-none [color-scheme:dark]"
+                        className="w-full pl-11 pr-4 py-3 bg-slate-800/50 border border-slate-700/50 rounded-lg text-white text-sm focus:border-indigo-500/50 outline-none [color-scheme:dark]"
                       />
                     </div>
                   </div>
                 </div>
 
                 <div className="space-y-3">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 ml-1">
+                  <label className="text-xs font-medium text-slate-400 ml-1">
                     Tags
                   </label>
                   <div className="flex flex-wrap gap-2 mb-2">
                     {tags.map((tag) => (
                       <span
                         key={tag}
-                        className="flex items-center gap-1.5 px-3 py-1 bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[10px] font-bold rounded-full uppercase"
+                        className="flex items-center gap-1.5 px-3 py-1 bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-xs font-medium rounded-full"
                       >
                         <Hash size={10} /> {tag}
                         <button
@@ -289,15 +343,15 @@ const TaskFormModal: React.FC<TaskFormModalProps> = ({
                     onKeyDown={(e) =>
                       e.key === "Enter" && (e.preventDefault(), handleAddTag())
                     }
-                    className="w-full px-4 py-2.5 bg-black/20 border border-white/5 rounded-xl text-white text-sm focus:border-blue-500/50 outline-none"
-                    placeholder="Add tag..."
+                    className="w-full px-4 py-2.5 bg-slate-800/50 border border-slate-700/50 rounded-lg text-white text-sm focus:border-indigo-500/50 outline-none"
+                    placeholder="Add tag and press Enter..."
                   />
                 </div>
 
-                <div className="p-4 bg-white/[0.02] border border-white/5 rounded-2xl">
+                <div className="p-4 bg-slate-800/30 border border-slate-700/50 rounded-lg">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <Repeat size={16} className="text-blue-500" />
+                      <Repeat size={16} className="text-indigo-400" />
                       <span className="text-sm font-medium text-slate-300">
                         Recurring Task
                       </span>
@@ -306,36 +360,95 @@ const TaskFormModal: React.FC<TaskFormModalProps> = ({
                       type="checkbox"
                       checked={isRecurring}
                       onChange={(e) => setIsRecurring(e.target.checked)}
-                      className="w-5 h-5 accent-blue-600"
+                      className="w-5 h-5 accent-indigo-600"
                     />
                   </div>
+
                   {isRecurring && (
-                    <input
-                      type="text"
-                      value={recurrenceRule}
-                      onChange={(e) => setRecurrenceRule(e.target.value)}
-                      className="w-full mt-3 px-4 py-3 bg-black/20 border border-white/5 rounded-xl text-white text-sm"
-                      placeholder="e.g. FREQ=DAILY"
-                    />
+                    <div className="mt-4 space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <label className="text-xs font-medium text-slate-400 ml-1">
+                            Frequency
+                          </label>
+                          <select
+                            value={recurrenceRule || ''}
+                            onChange={(e) => {
+                              setRecurrenceRule(e.target.value);
+                            }}
+                            className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700/50 rounded-lg text-white text-sm focus:border-indigo-500/50 outline-none"
+                          >
+                            <option value="">Select frequency</option>
+                            <option value="FREQ=DAILY">Daily</option>
+                            <option value="FREQ=WEEKLY">Weekly</option>
+                            <option value="FREQ=MONTHLY">Monthly</option>
+                            <option value="FREQ=YEARLY">Yearly</option>
+                          </select>
+                        </div>
+
+                        <div className="space-y-2">
+                          <label className="text-xs font-medium text-slate-400 ml-1">
+                            End Condition
+                          </label>
+                          <select
+                            value={endCondition}
+                            onChange={(e) => {
+                              const value = e.target.value as "none" | "after" | "on";
+                              setEndCondition(value);
+                            }}
+                            className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700/50 rounded-lg text-white text-sm focus:border-indigo-500/50 outline-none"
+                          >
+                            <option value="none">No end date</option>
+                            <option value="after">End after</option>
+                            <option value="on">End on</option>
+                          </select>
+
+                          {endCondition === "after" && (
+                            <div className="mt-2 flex items-center gap-2">
+                              <input
+                                type="number"
+                                min="1"
+                                value={endAfterCount}
+                                onChange={(e) => setEndAfterCount(parseInt(e.target.value) || 1)}
+                                className="w-20 px-3 py-2 bg-slate-800/50 border border-slate-700/50 rounded-lg text-white text-sm focus:border-indigo-500/50 outline-none"
+                              />
+                              <span className="text-sm text-slate-400">occurrences</span>
+                            </div>
+                          )}
+
+                          {endCondition === "on" && (
+                            <div className="mt-2">
+                              <input
+                                type="datetime-local"
+                                value={endDate}
+                                onChange={(e) => setEndDate(e.target.value)}
+                                className="w-full px-3 py-2 bg-slate-800/50 border border-slate-700/50 rounded-lg text-white text-sm focus:border-indigo-500/50 outline-none [color-scheme:dark]"
+                              />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
                   )}
                 </div>
               </form>
             </div>
 
             {/* Footer */}
-            <div className="p-6 md:p-8 bg-black/20 border-t border-white/5 flex gap-4">
+            <div className="p-6 md:p-8 bg-slate-800/30 border-t border-slate-700/50 flex gap-4">
               <Button
                 onClick={onClose}
-                className="flex-1 py-6 bg-white/5 hover:bg-white/10 text-white text-xs font-bold rounded-2xl uppercase tracking-widest"
+                variant="outline"
+                className="flex-1 py-5 bg-slate-700/50 hover:bg-slate-600/50 text-white text-sm font-medium rounded-lg"
               >
                 Cancel
               </Button>
               <Button
                 onClick={handleSubmit}
                 disabled={!title.trim()}
-                className="flex-1 py-6 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-2xl uppercase tracking-widest disabled:opacity-50"
+                className="flex-1 py-5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-sm font-medium rounded-lg disabled:opacity-50 shadow-lg shadow-indigo-500/20"
               >
-                {initialData ? "Save Changes" : "Initialize Task"}
+                {initialData ? "Save Changes" : "Create Task"}
               </Button>
             </div>
           </motion.div>

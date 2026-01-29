@@ -1,0 +1,176 @@
+LOCAL DEPLOYMENT – MINIKUBE IMPLEMENTATION PLAN (sp.plan.txt)
+
+Component Name:
+Local Deployment using Minikube (Kubernetes)
+
+Status:
+Optional / Planned
+
+PHASE 1: PREPARATION & ENVIRONMENT SETUP
+
+Task ID: MK-01
+Description: Install and validate Minikube environment
+Inputs:
+- Docker Desktop installed
+- Application running on Docker Compose
+Actions:
+- Install Minikube locally
+- Install kubectl CLI
+- Verify Minikube version and kubectl connectivity
+Output:
+- Minikube CLI available
+- kubectl configured
+Verification:
+- minikube version
+- kubectl version
+- kubectl config current-context
+
+PHASE 2: MINIKUBE CLUSTER INITIALIZATION
+
+Task ID: MK-02
+Description: Start local Kubernetes cluster
+Inputs:
+- Minikube installed
+- Docker runtime available
+Actions:
+- Start Minikube using Docker driver
+- Verify cluster status
+Output:
+- Single-node Kubernetes cluster running
+Verification:
+- minikube status
+- kubectl get nodes
+
+PHASE 3: DAPR INSTALLATION ON MINIKUBE
+
+Task ID: MK-03
+Description: Install Dapr control plane in Kubernetes
+Inputs:
+- Running Minikube cluster
+Actions:
+- Initialize Dapr in Kubernetes mode
+- Verify Dapr system pods
+Output:
+- Dapr installed in cluster
+Verification:
+- kubectl get pods -n dapr-system
+- Dapr placement, operator, sidecar injector pods running
+
+PHASE 4: APPLICATION IMAGE PREPARATION
+
+Task ID: MK-04
+Description: Prepare container images for Kubernetes
+Inputs:
+- Existing backend and consumer Dockerfiles
+Actions:
+- Build application images
+- Load images into Minikube Docker environment
+Output:
+- Images available inside Minikube
+Verification:
+- minikube image list
+- kubectl can pull images without error
+
+PHASE 5: KUBERNETES MANIFEST CREATION
+
+Task ID: MK-05
+Description: Create Kubernetes manifests for application
+Inputs:
+- Application services definition
+Actions:
+- Create Deployment manifests for:
+  - Backend service
+  - Recurring consumer
+- Create Service manifests for internal access
+- Define ConfigMaps if required
+Output:
+- Kubernetes YAML files ready
+Verification:
+- kubectl apply --dry-run=client
+- No syntax errors
+
+PHASE 6: DAPR SIDECAR INJECTION
+
+Task ID: MK-06
+Description: Enable Dapr sidecars for services
+Inputs:
+- Kubernetes deployments
+Actions:
+- Add Dapr annotations to pod specs:
+  - dapr.io/enabled
+  - dapr.io/app-id
+  - dapr.io/app-port
+- Apply updated manifests
+Output:
+- Dapr sidecars injected into pods
+Verification:
+- kubectl get pods
+- Each pod shows 2 containers (app + dapr)
+
+PHASE 7: DAPR COMPONENT DEPLOYMENT
+
+Task ID: MK-07
+Description: Deploy Dapr components to cluster
+Inputs:
+- Existing Dapr component definitions
+Actions:
+- Apply pub/sub (Kafka) component
+- Apply state store (Redis) component
+- Apply cron bindings
+- Apply secret store components
+Output:
+- Dapr components registered in Kubernetes
+Verification:
+- kubectl get components
+- No component errors in Dapr logs
+
+PHASE 8: APPLICATION DEPLOYMENT & STARTUP
+
+Task ID: MK-08
+Description: Deploy application services to Minikube
+Inputs:
+- Kubernetes manifests
+- Dapr components applied
+Actions:
+- Deploy backend and consumer services
+- Monitor pod startup
+Output:
+- All application pods running
+Verification:
+- kubectl get pods
+- kubectl describe pod (no crash loops)
+
+PHASE 9: FUNCTIONAL VERIFICATION
+
+Task ID: MK-09
+Description: Verify application behavior in Minikube
+Inputs:
+- Running application pods
+Actions:
+- Access backend via port-forward
+- Test Dapr pub/sub messaging
+- Verify state store read/write
+- Verify cron triggers and recurring logic
+Output:
+- Application behaves same as Docker Compose setup
+Verification:
+- Successful HTTP responses
+- Kafka events processed
+- State updates confirmed
+
+PHASE 10: DOCUMENTATION & STATUS UPDATE
+
+Task ID: MK-10
+Description: Document Minikube deployment outcome
+Inputs:
+- Successful or skipped deployment
+Actions:
+- Record verification results
+- Mark component as Optional or Complete
+- Note any limitations or issues
+Output:
+- Updated project documentation
+- Clear deployment decision
+Verification:
+- sp.plan execution notes saved
+- Status updated in tracking table

@@ -1,0 +1,589 @@
+openapi: 3.0.3
+info:
+  title: Cloud Infrastructure Management API
+  description: API for managing cloud infrastructure components including Kubernetes, Dapr, and Kafka
+  version: 1.0.0
+servers:
+  - url: https://infra-api.example.com/v1
+    description: Production server
+  - url: https://staging-infra-api.example.com/v1
+    description: Staging server
+paths:
+  /clusters:
+    get:
+      summary: List all Kubernetes clusters
+      description: Retrieve a list of all configured Kubernetes clusters
+      responses:
+        '200':
+          description: List of clusters
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  clusters:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Cluster'
+    post:
+      summary: Create a new Kubernetes cluster
+      description: Provision a new Kubernetes cluster in the specified cloud provider
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClusterCreateRequest'
+      responses:
+        '201':
+          description: Cluster created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cluster'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /clusters/{clusterId}:
+    get:
+      summary: Get cluster details
+      description: Retrieve detailed information about a specific cluster
+      parameters:
+        - name: clusterId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Unique identifier of the cluster
+      responses:
+        '200':
+          description: Cluster details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cluster'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    patch:
+      summary: Update cluster configuration
+      description: Modify the configuration of an existing cluster
+      parameters:
+        - name: clusterId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Unique identifier of the cluster
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClusterUpdateRequest'
+      responses:
+        '200':
+          description: Cluster updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cluster'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      summary: Delete a cluster
+      description: Remove a Kubernetes cluster and all associated resources
+      parameters:
+        - name: clusterId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Unique identifier of the cluster
+      responses:
+        '204':
+          description: Cluster deleted successfully
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /clusters/{clusterId}/dapr/components:
+    get:
+      summary: List Dapr components in cluster
+      description: Retrieve all Dapr components configured in the specified cluster
+      parameters:
+        - name: clusterId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Unique identifier of the cluster
+      responses:
+        '200':
+          description: List of Dapr components
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  components:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/DaprComponent'
+    post:
+      summary: Create a Dapr component
+      description: Add a new Dapr component to the cluster
+      parameters:
+        - name: clusterId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Unique identifier of the cluster
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DaprComponentCreateRequest'
+      responses:
+        '201':
+          description: Dapr component created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DaprComponent'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /clusters/{clusterId}/kafka/topics:
+    get:
+      summary: List Kafka topics
+      description: Retrieve all Kafka topics in the cluster
+      parameters:
+        - name: clusterId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Unique identifier of the cluster
+      responses:
+        '200':
+          description: List of Kafka topics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  topics:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/KafkaTopic'
+    post:
+      summary: Create a Kafka topic
+      description: Add a new Kafka topic to the cluster
+      parameters:
+        - name: clusterId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Unique identifier of the cluster
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/KafkaTopicCreateRequest'
+      responses:
+        '201':
+          description: Kafka topic created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KafkaTopic'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /health:
+    get:
+      summary: Health check
+      description: Check the health status of the infrastructure management API
+      responses:
+        '200':
+          description: API is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [healthy]
+                  timestamp:
+                    type: string
+                    format: date-time
+
+components:
+  schemas:
+    Cluster:
+      type: object
+      required:
+        - id
+        - name
+        - provider
+        - region
+        - status
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the cluster
+          example: "aks-prod-001"
+        name:
+          type: string
+          description: Human-readable name for the cluster
+          example: "Production AKS Cluster"
+        provider:
+          type: string
+          enum: [AKS, GKE, OKE, Minikube]
+          description: Cloud provider or local environment
+          example: "AKS"
+        region:
+          type: string
+          description: Geographic region of the cluster
+          example: "East US"
+        nodeCount:
+          type: integer
+          minimum: 1
+          description: Number of nodes in the cluster
+          example: 3
+        nodeSize:
+          type: string
+          description: Size/type of nodes
+          example: "Standard_D4s_v3"
+        resourceLimits:
+          type: object
+          description: Resource limits for the cluster
+          properties:
+            cpu:
+              type: string
+              description: CPU limits
+              example: "4"
+            memory:
+              type: string
+              description: Memory limits
+              example: "8Gi"
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp when the cluster was created
+        status:
+          type: string
+          enum: [Pending, Running, Stopped, Failed]
+          description: Current status of the cluster
+          example: "Running"
+
+    ClusterCreateRequest:
+      type: object
+      required:
+        - name
+        - provider
+        - region
+      properties:
+        name:
+          type: string
+          description: Human-readable name for the cluster
+          example: "Staging AKS Cluster"
+        provider:
+          type: string
+          enum: [AKS, GKE, OKE, Minikube]
+          description: Cloud provider or local environment
+        region:
+          type: string
+          description: Geographic region for the cluster
+          example: "West Europe"
+        nodeCount:
+          type: integer
+          minimum: 1
+          default: 3
+          description: Number of nodes to provision
+        nodeSize:
+          type: string
+          default: "Standard_D2s_v3"
+          description: Size/type of nodes to provision
+        resourceLimits:
+          type: object
+          description: Resource limits for the cluster
+          properties:
+            cpu:
+              type: string
+              description: CPU limits
+              example: "4"
+            memory:
+              type: string
+              description: Memory limits
+              example: "8Gi"
+
+    ClusterUpdateRequest:
+      type: object
+      properties:
+        nodeCount:
+          type: integer
+          minimum: 1
+          description: New number of nodes for the cluster
+        nodeSize:
+          type: string
+          description: New size/type of nodes
+        resourceLimits:
+          type: object
+          description: New resource limits for the cluster
+          properties:
+            cpu:
+              type: string
+              description: CPU limits
+              example: "8"
+            memory:
+              type: string
+              description: Memory limits
+              example: "16Gi"
+
+    DaprComponent:
+      type: object
+      required:
+        - name
+        - type
+        - version
+      properties:
+        name:
+          type: string
+          description: Unique name of the component
+          example: "statestore"
+        type:
+          type: string
+          enum: [statestore, pubsub, secretstore, configuration]
+          description: Type of Dapr component
+          example: "statestore"
+        version:
+          type: string
+          description: Version of the component
+          example: "v1"
+        metadata:
+          type: array
+          description: Metadata properties for the component
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+                description: Name of the metadata property
+                example: "redisHost"
+              value:
+                type: string
+                description: Value of the metadata property
+                example: "localhost:6379"
+              secretKeyRef:
+                type: object
+                description: Reference to a secret for this property
+                properties:
+                  name:
+                    type: string
+                    description: Name of the secret
+                  key:
+                    type: string
+                    description: Key within the secret
+        scopes:
+          type: array
+          description: List of applications that can use this component
+          items:
+            type: string
+            example: ["todo-app", "notification-service"]
+        initTimeout:
+          type: string
+          description: Timeout for component initialization
+          example: "5s"
+
+    DaprComponentCreateRequest:
+      type: object
+      required:
+        - name
+        - type
+        - version
+      properties:
+        name:
+          type: string
+          description: Unique name of the component
+          example: "pubsub"
+        type:
+          type: string
+          enum: [statestore, pubsub, secretstore, configuration]
+          description: Type of Dapr component
+        version:
+          type: string
+          description: Version of the component
+          example: "v1"
+        metadata:
+          type: array
+          description: Metadata properties for the component
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+                description: Name of the metadata property
+              value:
+                type: string
+                description: Value of the metadata property (plaintext or secret reference)
+              secretKeyRef:
+                type: object
+                description: Reference to a secret for this property
+                properties:
+                  name:
+                    type: string
+                    description: Name of the secret
+                  key:
+                    type: string
+                    description: Key within the secret
+        scopes:
+          type: array
+          description: List of applications that can use this component
+          items:
+            type: string
+        initTimeout:
+          type: string
+          description: Timeout for component initialization
+          example: "5s"
+
+    KafkaTopic:
+      type: object
+      required:
+        - name
+        - partitions
+        - replicationFactor
+      properties:
+        name:
+          type: string
+          description: Unique name of the topic
+          example: "todo-events"
+        partitions:
+          type: integer
+          minimum: 1
+          description: Number of partitions in the topic
+          example: 3
+        replicationFactor:
+          type: integer
+          minimum: 1
+          maximum: 3
+          description: Number of replicas for the topic
+          example: 3
+        retentionMs:
+          type: integer
+          description: Retention period in milliseconds
+          example: 86400000
+        cleanupPolicy:
+          type: string
+          enum: [compact, delete, "compact,delete"]
+          description: Cleanup policy for the topic
+          example: "delete"
+        compressionType:
+          type: string
+          enum: [gzip, snappy, lz4, zstd, uncompressed]
+          description: Compression type for messages
+          example: "snappy"
+        maxMessageBytes:
+          type: integer
+          description: Maximum size of messages in bytes
+          example: 1000012
+
+    KafkaTopicCreateRequest:
+      type: object
+      required:
+        - name
+        - partitions
+      properties:
+        name:
+          type: string
+          description: Unique name of the topic
+          example: "user-actions"
+        partitions:
+          type: integer
+          minimum: 1
+          default: 1
+          description: Number of partitions to create
+        replicationFactor:
+          type: integer
+          minimum: 1
+          maximum: 3
+          default: 1
+          description: Number of replicas for the topic
+        retentionMs:
+          type: integer
+          default: 604800000
+          description: Retention period in milliseconds (default 7 days)
+        cleanupPolicy:
+          type: string
+          enum: [compact, delete, "compact,delete"]
+          default: "delete"
+          description: Cleanup policy for the topic
+        compressionType:
+          type: string
+          enum: [gzip, snappy, lz4, zstd, uncompressed]
+          default: "producer"
+          description: Compression type for messages
+        maxMessageBytes:
+          type: integer
+          default: 1000012
+          description: Maximum size of messages in bytes
+
+    Error:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          description: Application-specific error code
+        message:
+          type: string
+          description: Human-readable error message
+        details:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+                description: Field that caused the error
+              reason:
+                type: string
+                description: Reason for the error
+
+  responses:
+    BadRequest:
+      description: Bad request - invalid input
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Unauthorized:
+      description: Unauthorized - authentication required
+      headers:
+        WWW-Authenticate:
+          schema:
+            type: string
+          description: Authentication challenge
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token for authentication

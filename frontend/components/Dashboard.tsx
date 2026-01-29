@@ -18,6 +18,9 @@ import {
   Filter,
   Sparkles,
   LayoutGrid,
+  TrendingUp,
+  Target,
+  Calendar as CalendarIcon
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -250,7 +253,7 @@ const Dashboard = () => {
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-[#020617] text-slate-200 relative overflow-hidden">
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900/10 to-indigo-900/10 text-slate-200 relative overflow-hidden">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full pointer-events-none">
           <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-blue-600/5 blur-[120px] rounded-full" />
           <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-indigo-600/5 blur-[120px] rounded-full" />
@@ -258,26 +261,23 @@ const Dashboard = () => {
 
         <Navbar />
 
-        <div className="container relative z-10 mx-auto px-6 pt-32 pb-20 max-w-6xl">
-          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-6 mb-12">
+        <div className="container relative z-10 mx-auto px-4 sm:px-6 pt-32 pb-20 max-w-7xl">
+          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-6 mb-10">
             <div>
               <motion.div
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 className="flex items-center gap-3 mb-3"
               >
-                <div className="p-2 bg-blue-600/10 rounded-lg">
-                  <Sparkles className="text-blue-500 w-5 h-5" />
+                <div className="p-2 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-lg">
+                  <Target className="text-white w-5 h-5" />
                 </div>
-                <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-blue-500/80">
-                  Personal Workspace
+                <span className="text-xs font-bold uppercase tracking-widest text-indigo-400">
+                  Productivity Dashboard
                 </span>
               </motion.div>
-              <h1 className="text-4xl md:text-5xl font-bold text-white tracking-tight">
-                Task{" "}
-                <span className="text-slate-500 font-light text-3xl md:text-4xl">
-                  Dashboard
-                </span>
+              <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white tracking-tight">
+                My <span className="text-indigo-400">Tasks</span>
               </h1>
             </div>
 
@@ -286,25 +286,25 @@ const Dashboard = () => {
                 <select
                   value={activeFilter}
                   onChange={(e) => setActiveFilter(e.target.value as any)}
-                  className="w-full bg-slate-900/40 border border-white/10 rounded-xl px-5 py-2.5 text-sm text-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-600/50 appearance-none pr-10 hover:bg-slate-800/60 transition-all cursor-pointer"
+                  className="w-full bg-slate-800/50 border border-slate-700/50 rounded-xl px-4 py-2.5 text-sm text-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 appearance-none pr-10 hover:bg-slate-700/50 transition-all cursor-pointer"
                 >
                   <option value="all">All Tasks</option>
                   <option value="pending">Pending</option>
                   <option value="completed">Completed</option>
                 </select>
-                <Filter className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4 pointer-events-none group-hover:text-blue-400 transition-colors" />
+                <Filter className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4 pointer-events-none group-hover:text-indigo-400 transition-colors" />
               </div>
 
               <div className="relative group flex-1 lg:flex-none">
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value as any)}
-                  className="w-full bg-slate-900/40 border border-white/10 rounded-xl px-5 py-2.5 text-sm text-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-600/50 appearance-none pr-10 hover:bg-slate-800/60 transition-all cursor-pointer"
+                  className="w-full bg-slate-800/50 border border-slate-700/50 rounded-xl px-4 py-2.5 text-sm text-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 appearance-none pr-10 hover:bg-slate-700/50 transition-all cursor-pointer"
                 >
                   <option value="created">Sort by Date</option>
                   <option value="title">Sort by Title</option>
                 </select>
-                <LayoutGrid className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4 pointer-events-none group-hover:text-blue-400 transition-colors" />
+                <LayoutGrid className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4 pointer-events-none group-hover:text-indigo-400 transition-colors" />
               </div>
 
               <div className="relative group flex-1 lg:flex-none">
@@ -313,7 +313,7 @@ const Dashboard = () => {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search tasks..."
-                  className="w-full bg-slate-900/40 border border-white/10 rounded-xl px-5 py-2.5 pl-11 text-sm text-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-600/50 appearance-none hover:bg-slate-800/60 transition-all"
+                  className="w-full bg-slate-800/50 border border-slate-700/50 rounded-xl px-4 py-2.5 pl-10 text-sm text-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 appearance-none hover:bg-slate-700/50 transition-all"
                 />
                 <svg
                   className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4 pointer-events-none"
@@ -333,25 +333,31 @@ const Dashboard = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-12">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-10">
             {[
               {
-                icon: Clock,
-                label: "Tagged Tasks",
-                val: totalTagged,
-                color: "text-blue-500",
+                icon: Target,
+                label: "Total Tasks",
+                val: totalTasks,
+                color: "text-indigo-400",
               },
               {
-                icon: Circle,
-                label: "Active Tags",
-                val: inProgressTagged,
-                color: "text-amber-500",
+                icon: Clock,
+                label: "In Progress",
+                val: inProgressTasks,
+                color: "text-amber-400",
               },
               {
                 icon: CheckCircle,
-                label: "Tagged Done",
-                val: completedTagged,
-                color: "text-emerald-500",
+                label: "Completed",
+                val: completedTasks,
+                color: "text-emerald-400",
+              },
+              {
+                icon: TrendingUp,
+                label: "Completion",
+                val: totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) + "%" : "0%",
+                color: "text-blue-400",
               },
             ].map((stat, i) => (
               <motion.div
@@ -359,23 +365,22 @@ const Dashboard = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.1 }}
-                className="group bg-slate-900/40 border border-white/5 rounded-[24px] p-6 backdrop-blur-xl transition-all duration-500 hover:border-white/10"
+                className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-lg border border-slate-700/50 rounded-2xl p-5 transition-all duration-500 hover:border-slate-600/70"
               >
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3">
                   <div
-                    className={`p-4 rounded-2xl bg-slate-800/40 ${stat.color} group-hover:scale-110 transition-transform duration-500 shadow-inner`}
+                    className={`p-3 rounded-xl bg-slate-700/50 ${stat.color} transition-transform duration-300 hover:scale-110`}
                   >
-                    <stat.icon size={22} strokeWidth={2.5} />
+                    <stat.icon size={20} strokeWidth={2.5} />
                   </div>
                   <div>
-                    <p className="text-slate-500 text-[10px] uppercase tracking-[0.25em] font-black">
+                    <p className="text-slate-500 text-xs uppercase tracking-wider font-medium">
                       {stat.label}
                     </p>
                     <div className="flex items-baseline gap-1">
-                      <p className="text-3xl font-black text-white mt-1 leading-none tracking-tight">
+                      <p className="text-2xl font-bold text-white mt-1 leading-none">
                         {stat.val}
                       </p>
-                      <div className={`w-1 h-1 rounded-full ${stat.color.replace('text', 'bg')} animate-pulse`} />
                     </div>
                   </div>
                 </div>
@@ -384,7 +389,7 @@ const Dashboard = () => {
           </div>
 
           <main className="relative z-10">
-            <div className="mb-10">
+            <div className="mb-8">
               <TaskInput onAddTask={handleAddTask} />
             </div>
 
@@ -393,7 +398,7 @@ const Dashboard = () => {
                 {[...Array(3)].map((_, i) => (
                   <div
                     key={i}
-                    className="h-24 bg-white/5 border border-white/5 rounded-2xl animate-pulse"
+                    className="h-20 bg-slate-800/30 border border-slate-700/50 rounded-xl animate-pulse"
                   />
                 ))}
               </div>
@@ -401,21 +406,21 @@ const Dashboard = () => {
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="flex flex-col items-center justify-center py-24 text-center border border-dashed border-white/10 rounded-[32px] bg-white/[0.01]"
+                className="flex flex-col items-center justify-center py-20 text-center border border-dashed border-slate-700/50 rounded-2xl bg-slate-800/20 backdrop-blur-sm"
               >
                 <div className="relative mb-6">
-                  <div className="absolute inset-0 bg-blue-500/20 blur-2xl rounded-full" />
-                  <div className="relative w-20 h-20 bg-slate-900 border border-white/10 rounded-2xl flex items-center justify-center text-slate-500">
-                    <LayoutGrid size={32} />
+                  <div className="absolute inset-0 bg-indigo-500/20 blur-xl rounded-full" />
+                  <div className="relative w-16 h-16 bg-slate-800 border border-slate-700/50 rounded-xl flex items-center justify-center text-slate-500">
+                    <LayoutGrid size={24} />
                   </div>
                 </div>
                 <h3 className="text-xl font-bold text-white mb-2 tracking-tight">
-                  {searchQuery ? "No matching tasks found" : "Focus on what matters"}
+                  {searchQuery ? "No matching tasks found" : "No tasks yet"}
                 </h3>
-                <p className="text-slate-500 max-w-xs mb-8 text-sm font-light">
+                <p className="text-slate-500 max-w-xs mb-6 text-sm">
                   {searchQuery
                     ? "Try adjusting your search terms to find what you're looking for."
-                    : "Your task sanctuary is empty. Create your first milestone to begin your journey."
+                    : "Get started by creating your first task."
                   }
                 </p>
                 <Button
@@ -426,17 +431,17 @@ const Dashboard = () => {
                       document.getElementById("task-input-title")?.focus(); // Focus on input when adding task
                     }
                   }}
-                  className="bg-blue-600 hover:bg-blue-500 text-white rounded-xl px-8 h-12 font-bold shadow-lg shadow-blue-600/20 active:scale-95 transition-all"
+                  className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-xl px-6 h-11 font-medium shadow-lg shadow-indigo-500/20 active:scale-95 transition-all"
                 >
                   <Plus className="w-4 h-4 mr-2" />
-                  {searchQuery ? "Clear Search" : "Add First Task"}
+                  {searchQuery ? "Clear Search" : "Add Task"}
                 </Button>
               </motion.div>
             ) : (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="mt-8 space-y-4"
+                className="mt-6 space-y-4"
               >
                 <AnimatePresence mode="popLayout">
                   <TaskList

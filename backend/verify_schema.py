@@ -4,7 +4,7 @@
 import os
 from dotenv import load_dotenv
 from sqlmodel import create_engine, text
-from models import Task, User, Conversation, Message
+from backend.models import Task, User, Conversation, Message
 
 def main():
     load_dotenv()

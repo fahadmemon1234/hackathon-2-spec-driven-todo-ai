@@ -16,7 +16,7 @@ You are an expert AI assistant specializing in Spec-Driven Development (SDD). Yo
 
 ## Core Guarantees (Product Promise)
 
-- Record every user input verbatim in a Prompt History Record (PHR) after every user message. Do not truncate; preserve full multiline input.
+- Record every user input verbatim in a Prompt History Record (PHR) after every user prompt.
 - PHR routing (all under `history/prompts/`):
   - Constitution → `history/prompts/constitution/`
   - Feature-specific → `history/prompts/<feature-name>/`
@@ -208,3 +208,27 @@ Wait for consent; never auto-create ADRs. Group related decisions (stacks, authe
 
 ## Code Standards
 See `.specify/memory/constitution.md` for code quality, testing, performance, security, and architecture principles.
+
+## Active Technologies
+- Python + FastAPI (1-dapr-integration)
+- Dapr (1-dapr-integration)
+- Apache Kafka (1-dapr-integration)
+- Redis (1-dapr-integration)
+- Docker Compose (1-dapr-integration)
+
+## Project Structure
+backend/
+frontend/
+components/
+docker/
+
+## Commands
+cd src && pytest && ruff check .
+
+## Language Conventions
+Python: Follow standard conventions
+
+## Recent Changes
+- 1-dapr-integration: Added Python + FastAPI
+- 1-dapr-integration: Added Dapr
+- 1-dapr-integration: Added Apache Kafka

@@ -1,0 +1,137 @@
+# API Contracts for Recurring Tasks Feature
+
+## Task Creation Endpoint
+### POST /api/tasks/
+**Request Body:**
+```json
+{
+  "title": "string",
+  "description": "string | null",
+  "due_date": "datetime | null",
+  "urgency": "string (LOW|MEDIUM|HIGH)",
+  "tags": "string[]",
+  "user_id": "integer",
+  "recurrence_rule": "string | null",
+  "recurrence_end_date": "datetime | null",
+  "recurrence_max_count": "integer | null"
+}
+```
+
+**Response:**
+```json
+{
+  "id": "integer",
+  "title": "string",
+  "description": "string | null",
+  "due_date": "datetime | null",
+  "urgency": "string",
+  "tags": "string[]",
+  "status": "string",
+  "user_id": "integer",
+  "recurrence_rule": "string | null",
+  "recurrence_end_date": "datetime | null",
+  "recurrence_max_count": "integer | null",
+  "original_task_id": "integer | null",
+  "occurrence_number": "integer"
+}
+```
+
+## Task Update Endpoint
+### PATCH /api/tasks/{task_id}
+**Request Body:**
+```json
+{
+  "title": "string | null",
+  "description": "string | null",
+  "due_date": "datetime | null",
+  "urgency": "string | null",
+  "tags": "string[] | null",
+  "recurrence_rule": "string | null",
+  "recurrence_end_date": "datetime | null",
+  "recurrence_max_count": "integer | null"
+}
+```
+
+**Response:**
+```json
+{
+  "id": "integer",
+  "title": "string",
+  "description": "string | null",
+  "due_date": "datetime | null",
+  "urgency": "string",
+  "tags": "string[]",
+  "status": "string",
+  "user_id": "integer",
+  "recurrence_rule": "string | null",
+  "recurrence_end_date": "datetime | null",
+  "recurrence_max_count": "integer | null",
+  "original_task_id": "integer | null",
+  "occurrence_number": "integer"
+}
+```
+
+## Task Completion Endpoint
+### PATCH /api/tasks/{task_id}/complete
+**Response:**
+```json
+{
+  "id": "integer",
+  "title": "string",
+  "description": "string | null",
+  "due_date": "datetime | null",
+  "urgency": "string",
+  "tags": "string[]",
+  "status": "completed",
+  "user_id": "integer",
+  "recurrence_rule": "string | null",
+  "recurrence_end_date": "datetime | null",
+  "recurrence_max_count": "integer | null",
+  "original_task_id": "integer | null",
+  "occurrence_number": "integer"
+}
+```
+
+## Kafka Message Contract
+### Topic: task-events
+**Message Format:**
+```json
+{
+  "event_type": "task_completed",
+  "task_id": "integer",
+  "recurrence_rule": "string | null",
+  "title": "string",
+  "description": "string | null",
+  "due_date": "datetime | null",
+  "urgency": "string",
+  "tags": "string[]",
+  "user_id": "integer",
+  "original_task_id": "integer | null",
+  "occurrence_number": "integer"
+}
+```
+
+## Task List Response (with recurrence indicators)
+### GET /api/tasks/
+**Response:**
+```json
+[
+  {
+    "id": "integer",
+    "title": "string",
+    "description": "string | null",
+    "due_date": "datetime | null",
+    "urgency": "string",
+    "tags": "string[]",
+    "status": "string",
+    "user_id": "integer",
+    "recurrence_rule": "string | null",
+    "recurrence_end_date": "datetime | null",
+    "recurrence_max_count": "integer | null",
+    "original_task_id": "integer | null",
+    "occurrence_number": "integer",
+    "is_recurring": "boolean",
+    "recurrence_display": "string | null"
+  }
+]
+```

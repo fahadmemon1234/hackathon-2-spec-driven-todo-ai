@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Plus, Calendar, X, Hash, LayoutGrid, AlertCircle } from "lucide-react";
+import { Plus, Calendar, X, Hash, Folder, AlertCircle, Sparkles } from "lucide-react";
 
 interface TaskInputProps {
   onAddTask: (taskData: {
@@ -44,18 +44,12 @@ const TaskInput: React.FC<TaskInputProps> = ({ onAddTask }) => {
     }
   }, [description]);
 
-  // --- STRICT VALIDATION (AB SAB KUCH REQUIRED HAI) ---
+  // Simplified validation - only title is required
   const validate = () => {
     const newErrors: { [key: string]: string } = {};
 
     if (!title.trim()) {
-      newErrors.title = "Title is required";
-    } else if (!description.trim()) {
-      newErrors.description = "Description is required";
-    } else if (!category.trim()) {
-      newErrors.category = "Category is required";
-    } else if (tags.length === 0) {
-      newErrors.tags = "At least one tag is required";
+      newErrors.title = "Task title is required";
     }
 
     setErrors(newErrors);
@@ -66,7 +60,7 @@ const TaskInput: React.FC<TaskInputProps> = ({ onAddTask }) => {
     if (e.key === "Enter" || e.key === ",") {
       e.preventDefault();
       const val = tagInput.trim().replace(",", "");
-      if (val && !tags.includes(val)) {
+      if (val && !tags.includes(val) && tags.length < 5) { // Limit to 5 tags
         setTags([...tags, val]);
         setTagInput("");
         setErrors((prev) => ({ ...prev, tags: "" }));
@@ -81,11 +75,9 @@ const TaskInput: React.FC<TaskInputProps> = ({ onAddTask }) => {
   const handleSubmit = (e?: React.FormEvent) => {
     e?.preventDefault();
 
-    // Pehle validate karein
     const isValid = validate();
 
     if (!isValid) {
-      // Agar koi bhi ek error milti hai, toh form shake karega aur logic ruk jayega
       setIsShaking(true);
       setTimeout(() => setIsShaking(false), 500);
       return;
@@ -95,12 +87,11 @@ const TaskInput: React.FC<TaskInputProps> = ({ onAddTask }) => {
 
     setIsSubmitting(true);
 
-    // API ya Parent function call
     onAddTask({
       title: title.trim(),
       description: description.trim(),
       priority,
-      category: category.trim(),
+      category: category.trim() || "General", // Default to "General" if empty
       due_date: dueDate || undefined,
       tags: tags,
     });
@@ -120,13 +111,13 @@ const TaskInput: React.FC<TaskInputProps> = ({ onAddTask }) => {
   return (
     <motion.form
       animate={isShaking ? { x: [-10, 10, -10, 10, 0] } : { opacity: 1, y: 0 }}
-      className={`relative bg-slate-900/60 backdrop-blur-2xl rounded-[28px] mb-10 overflow-hidden border transition-all duration-500 ${
+      className={`relative bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl rounded-2xl mb-10 overflow-hidden border transition-all duration-500 ${
         Object.keys(errors).length > 0
           ? "border-red-500/50"
           : isFocused
-            ? "border-blue-500/40"
-            : "border-white/5"
-      }`}
+            ? "border-indigo-500/40"
+            : "border-slate-700/50"
+      } shadow-xl`}
       onSubmit={handleSubmit}
     >
       <div className="p-6">
@@ -136,22 +127,25 @@ const TaskInput: React.FC<TaskInputProps> = ({ onAddTask }) => {
             <div className="flex flex-col gap-1">
               <div className="flex items-center gap-3">
                 <div
-                  className={`w-2 h-2 rounded-full ${errors.title ? "bg-red-500" : "bg-blue-500"}`}
+                  className={`w-3 h-3 rounded-full ${errors.title ? "bg-red-500" : "bg-indigo-500"}`}
                 />
                 <input
+                  id="task-input-title"
                   type="text"
                   value={title}
                   onChange={(e) => {
                     setTitle(e.target.value);
                     if (errors.title) setErrors((p) => ({ ...p, title: "" }));
                   }}
-                  placeholder="Task Title (Required)"
-                  className="w-full bg-transparent border-none focus:outline-none text-white text-xl font-bold placeholder-slate-700"
+                  onFocus={() => setIsFocused(true)}
+                  onBlur={() => setIsFocused(false)}
+                  placeholder="What needs to be done?"
+                  className="w-full bg-transparent border-none focus:outline-none text-white text-xl font-semibold placeholder-slate-500"
                 />
               </div>
               {errors.title && (
-                <span className="text-red-400 text-[10px] ml-5 uppercase font-bold tracking-widest flex items-center gap-1">
-                  <AlertCircle size={10} />
+                <span className="text-red-400 text-xs ml-5 flex items-center gap-1">
+                  <AlertCircle size={12} />
                   {errors.title}
                 </span>
               )}
@@ -167,74 +161,70 @@ const TaskInput: React.FC<TaskInputProps> = ({ onAddTask }) => {
                   if (errors.description)
                     setErrors((p) => ({ ...p, description: "" }));
                 }}
-                placeholder="Detailed Description (Required)"
-                className={`w-full bg-white/[0.02] border rounded-2xl px-4 py-3 text-slate-300 placeholder-slate-700 focus:outline-none transition-all text-sm resize-none ${errors.description ? "border-red-500/30" : "border-white/5"}`}
+                placeholder="Add details (optional)"
+                className={`w-full bg-slate-800/30 border rounded-xl px-4 py-3 text-slate-300 placeholder-slate-600 focus:outline-none transition-all text-sm resize-none ${errors.description ? "border-red-500/30" : "border-slate-700/50"}`}
               />
-              {errors.description && (
-                <span className="text-red-400 text-[10px] uppercase font-bold tracking-widest pl-1">
-                  {errors.description}
-                </span>
-              )}
             </div>
           </div>
 
           <Button
             type="submit"
             disabled={isSubmitting}
-            className={`h-14 w-14 rounded-2xl transition-all ${
-              !title || !description || !category || tags.length === 0
+            className={`h-12 w-12 rounded-xl transition-all ${
+              !title
                 ? "bg-slate-800 text-slate-600"
-                : "bg-blue-600 text-white shadow-lg shadow-blue-600/20"
+                : "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-500/30 hover:shadow-indigo-500/50"
             }`}
           >
             <Plus
-              size={28}
+              size={20}
               strokeWidth={3}
               className={isSubmitting ? "animate-spin" : ""}
             />
           </Button>
         </div>
 
-        <div className="mt-6 space-y-6 pt-6 border-t border-white/5">
+        <div className="mt-4 space-y-4 pt-4 border-t border-slate-800/50">
           {/* Tags Display */}
-          <div className="flex flex-col gap-2">
-            <div className="flex flex-wrap gap-2">
-              {tags.map((tag) => (
-                <span
-                  key={tag}
-                  className="flex items-center gap-1.5 px-3 py-1 bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-medium rounded-full"
+          <div className="flex flex-wrap gap-2">
+            {tags.map((tag) => (
+              <span
+                key={tag}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-xs font-medium rounded-full"
+              >
+                <Hash size={10} /> {tag}
+                <button
+                  type="button"
+                  onClick={() => removeTag(tag)}
+                  className="hover:text-white"
                 >
-                  <Hash size={10} /> {tag}
-                  <button
-                    type="button"
-                    onClick={() => removeTag(tag)}
-                    className="hover:text-white"
-                  >
-                    <X size={12} />
-                  </button>
-                </span>
-              ))}
-            </div>
-            {errors.tags && (
-              <span className="text-red-400 text-[10px] uppercase font-bold tracking-widest">
-                {errors.tags}
+                  <X size={12} />
+                </button>
               </span>
+            ))}
+
+            {tags.length === 0 && (
+              <span className="text-slate-600 text-xs italic">Add tags to categorize your task</span>
             )}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-end">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
             {/* Priority */}
-            <div className="flex flex-col gap-2">
-              <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500 ml-1">
-                Urgency
+            <div className="flex flex-col gap-1">
+              <span className="text-xs font-medium text-slate-500 ml-1">
+                Priority
               </span>
-              <div className="flex gap-1 p-1 bg-black/40 rounded-xl border border-white/5">
+              <div className="flex gap-1 p-1 bg-slate-800/50 rounded-lg border border-slate-700/50">
                 {(["low", "medium", "high"] as const).map((p) => (
                   <button
                     key={p}
                     type="button"
                     onClick={() => setPriority(p)}
-                    className={`flex-1 py-1.5 text-[10px] font-black rounded-lg transition-all uppercase ${priority === p ? priorityMap[p] : "text-slate-500 hover:bg-white/5"}`}
+                    className={`flex-1 py-1.5 text-[10px] font-bold rounded-md transition-all uppercase ${
+                      priority === p
+                        ? priorityMap[p]
+                        : "text-slate-500 hover:bg-slate-700/50"
+                    }`}
                   >
                     {p}
                   </button>
@@ -243,12 +233,12 @@ const TaskInput: React.FC<TaskInputProps> = ({ onAddTask }) => {
             </div>
 
             {/* Category */}
-            <div className="flex flex-col gap-2">
-              <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500 ml-1">
-                Category (Required)
+            <div className="flex flex-col gap-1">
+              <span className="text-xs font-medium text-slate-500 ml-1">
+                Category
               </span>
               <div className="relative">
-                <LayoutGrid
+                <Folder
                   className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-600"
                   size={14}
                 />
@@ -260,20 +250,15 @@ const TaskInput: React.FC<TaskInputProps> = ({ onAddTask }) => {
                     if (errors.category)
                       setErrors((p) => ({ ...p, category: "" }));
                   }}
-                  placeholder="Work, Life..."
-                  className={`w-full bg-black/40 border rounded-xl pl-9 pr-3 py-2 text-sm text-slate-300 focus:outline-none transition-all ${errors.category ? "border-red-500/30" : "border-white/5"}`}
+                  placeholder="Work, Personal..."
+                  className={`w-full bg-slate-800/30 border rounded-lg pl-9 pr-3 py-2 text-sm text-slate-300 focus:outline-none transition-all ${errors.category ? "border-red-500/30" : "border-slate-700/50"}`}
                 />
               </div>
-              {errors.category && (
-                <span className="text-red-400 text-[9px] uppercase font-bold tracking-widest mt-1">
-                  {errors.category}
-                </span>
-              )}
             </div>
 
             {/* Tag Input */}
-            <div className="flex flex-col gap-2">
-              <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500 ml-1">
+            <div className="flex flex-col gap-1">
+              <span className="text-xs font-medium text-slate-500 ml-1">
                 Add Tags
               </span>
               <div className="relative">
@@ -286,16 +271,16 @@ const TaskInput: React.FC<TaskInputProps> = ({ onAddTask }) => {
                   value={tagInput}
                   onKeyDown={handleAddTag}
                   onChange={(e) => setTagInput(e.target.value)}
-                  placeholder="Enter to add..."
-                  className="w-full bg-black/40 border border-white/5 rounded-xl pl-9 pr-3 py-2 text-sm text-slate-300 focus:outline-none focus:border-blue-500/30 transition-all"
+                  placeholder="Press Enter to add..."
+                  className="w-full bg-slate-800/30 border border-slate-700/50 rounded-lg pl-9 pr-3 py-2 text-sm text-slate-300 focus:outline-none focus:border-indigo-500/30 transition-all"
                 />
               </div>
             </div>
 
             {/* Due Date */}
-            <div className="flex flex-col gap-2">
-              <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500 ml-1">
-                Deadline
+            <div className="flex flex-col gap-1">
+              <span className="text-xs font-medium text-slate-500 ml-1">
+                Due Date
               </span>
               <div className="relative group">
                 <Calendar
@@ -306,7 +291,7 @@ const TaskInput: React.FC<TaskInputProps> = ({ onAddTask }) => {
                   type="datetime-local"
                   value={dueDate}
                   onChange={(e) => setDueDate(e.target.value)}
-                  className="w-full bg-black/40 border border-white/5 rounded-xl pl-9 pr-3 py-2 text-sm text-slate-300 focus:outline-none focus:border-blue-500/30 transition-all [color-scheme:dark] cursor-pointer"
+                  className="w-full bg-slate-800/30 border border-slate-700/50 rounded-lg pl-9 pr-3 py-2 text-sm text-slate-300 focus:outline-none focus:border-indigo-500/30 transition-all [color-scheme:dark] cursor-pointer"
                 />
               </div>
             </div>

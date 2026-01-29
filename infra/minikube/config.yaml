@@ -1,0 +1,38 @@
+# Minikube Configuration for Dapr Development
+
+# This configuration is optimized for running Dapr on Minikube
+# It allocates sufficient resources for both Kubernetes and Dapr components
+
+# Memory allocation (in MB) - increased for Dapr workloads
+memory: 8192
+
+# CPU allocation - increased for better performance
+cpus: 4
+
+# Disk size - sufficient for container images and data
+disk-size: 40g
+
+# Driver selection (virtualizer)
+# On Windows: hyperv, virtualbox, docker, or wsl2
+# On macOS: hyperkit, virtualbox, or docker
+# On Linux: kvm2, virtualbox, or docker
+driver: docker
+
+# Kubernetes version (ensure compatibility with Dapr)
+kubernetes-version: stable
+
+# Extra configuration for Dapr
+extra-config:
+  kubeadm.pod-network-cidr: 10.244.0.0/16
+
+# Enabled addons
+addons:
+  - default-storageclass
+  - storage-provisioner
+  - ingress
+  - dashboard
+
+# Features
+feature-gates:
+  # Enable features required by Dapr
+  - RotateKubeletServerCertificate=true

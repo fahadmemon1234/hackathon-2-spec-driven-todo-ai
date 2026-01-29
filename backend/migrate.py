@@ -4,7 +4,7 @@
 import os
 from dotenv import load_dotenv
 from sqlmodel import create_engine, text
-from models import Conversation, Message, Task
+from backend.models import Conversation, Message, Task
 
 def main():
     load_dotenv()
@@ -23,7 +23,7 @@ def main():
         print("\nCreating conversations and messages tables...")
 
         # Import models to register them with SQLModel metadata
-        from models import SQLModel
+        from backend.models import SQLModel
         SQLModel.metadata.create_all(engine)
 
         print("Tables created successfully!")

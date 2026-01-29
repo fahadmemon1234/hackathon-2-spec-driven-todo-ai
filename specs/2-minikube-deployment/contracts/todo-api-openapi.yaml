@@ -1,0 +1,403 @@
+openapi: 3.0.0
+info:
+  title: Todo Application Backend API with Dapr Integration
+  version: 1.0.0
+  description: API for the Todo Application with Dapr integration for pub/sub, state management, and service invocation
+
+servers:
+  - url: http://localhost:8000
+    description: Local development server with Dapr sidecar
+
+paths:
+  /api/tasks:
+    get:
+      summary: Get all tasks
+      description: Retrieve a list of all tasks with optional filtering
+      parameters:
+        - name: status
+          in: query
+          description: Filter by status (pending, in-progress, completed)
+          required: false
+          schema:
+            type: string
+        - name: priority
+          in: query
+          description: Filter by priority (low, medium, high)
+          required: false
+          schema:
+            type: string
+        - name: category
+          in: query
+          description: Filter by category
+          required: false
+          schema:
+            type: string
+        - name: q
+          in: query
+          description: Search keyword in title and description
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of tasks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Task'
+    post:
+      summary: Create a new task
+      description: Create a new task and publish a creation event via Dapr pub/sub
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskCreate'
+      responses:
+        '201':
+          description: Task created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /api/tasks/{taskId}:
+    get:
+      summary: Get a specific task
+      description: Retrieve a specific task by ID from state store via Dapr
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Task details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      summary: Update a task
+      description: Update an existing task and publish an update event via Dapr pub/sub
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskUpdate'
+      responses:
+        '200':
+          description: Task updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      summary: Delete a task
+      description: Delete a task and publish a deletion event via Dapr pub/sub
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Task deleted successfully
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/process-reminders:
+    post:
+      summary: Process scheduled reminders (called by cron binding)
+      description: Endpoint called by Dapr cron binding to process due reminders
+      responses:
+        '200':
+          description: Reminders processed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReminderProcessingResult'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/schedule-reminder:
+    post:
+      summary: Schedule a new reminder
+      description: Schedule a new reminder and store it in state store via Dapr
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Reminder'
+      responses:
+        '201':
+          description: Reminder scheduled successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Reminder'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /dapr/subscribe:
+    get:
+      summary: Dapr subscription endpoint
+      description: Endpoint for Dapr to discover which topics this service wants to subscribe to
+      responses:
+        '200':
+          description: Subscription configuration
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DaprSubscription'
+
+  /health:
+    get:
+      summary: Health check endpoint
+      description: Check the health of the backend service and its dependencies
+      responses:
+        '200':
+          description: Health check result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthCheckResult'
+
+components:
+  schemas:
+    Task:
+      type: object
+      required:
+        - title
+      properties:
+        taskId:
+          type: string
+          description: Unique identifier for the task
+          example: "task-123"
+        title:
+          type: string
+          description: Title of the task
+          example: "Complete project proposal"
+        description:
+          type: string
+          description: Detailed description of the task
+          example: "Finish the project proposal document and send for review"
+        status:
+          type: string
+          enum: [pending, in-progress, completed]
+          description: Current status of the task
+          example: "pending"
+        priority:
+          type: string
+          enum: [low, medium, high, urgent]
+          description: Priority level of the task
+          example: "high"
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp when task was created
+        updatedAt:
+          type: string
+          format: date-time
+          description: Timestamp when task was last updated
+        dueDate:
+          type: string
+          format: date-time
+          description: Due date for the task
+        recurrenceRule:
+          type: string
+          description: Rule for recurring tasks
+          example: "FREQ=DAILY;INTERVAL=1"
+        tags:
+          type: array
+          items:
+            type: string
+          description: Tags associated with the task
+          example: ["work", "important"]
+
+    TaskCreate:
+      allOf:
+        - $ref: '#/components/schemas/Task'
+      required:
+        - title
+
+    TaskUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+          description: Updated title of the task
+        description:
+          type: string
+          description: Updated description of the task
+        status:
+          type: string
+          enum: [pending, in-progress, completed]
+          description: Updated status of the task
+        priority:
+          type: string
+          enum: [low, medium, high, urgent]
+          description: Updated priority level of the task
+        dueDate:
+          type: string
+          format: date-time
+          description: Updated due date for the task
+        tags:
+          type: array
+          items:
+            type: string
+          description: Updated tags associated with the task
+
+    Reminder:
+      type: object
+      required:
+        - reminderId
+        - taskId
+        - reminderTime
+      properties:
+        reminderId:
+          type: string
+          description: Unique identifier for the reminder
+          example: "reminder-456"
+        taskId:
+          type: string
+          description: Reference to the associated task
+          example: "task-123"
+        reminderTime:
+          type: string
+          format: date-time
+          description: Time when reminder should be triggered
+        message:
+          type: string
+          description: Message content for the reminder
+        notified:
+          type: boolean
+          description: Flag indicating if reminder has been sent
+          default: false
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp when reminder was created
+
+    ReminderProcessingResult:
+      type: object
+      properties:
+        status:
+          type: string
+          description: Processing status
+          example: "success"
+        message:
+          type: string
+          description: Processing message
+          example: "Reminders processed successfully"
+        processedCount:
+          type: integer
+          description: Number of reminders processed
+          example: 5
+        failedCount:
+          type: integer
+          description: Number of reminders that failed to process
+          example: 0
+        processedAt:
+          type: string
+          format: date-time
+          description: Timestamp when processing was completed
+
+    DaprSubscription:
+      type: object
+      properties:
+        pubsubname:
+          type: string
+          description: Name of the pubsub component
+          example: "kafka-pubsub"
+        topic:
+          type: string
+          description: Topic name to subscribe to
+          example: "task-updates"
+        route:
+          type: string
+          description: Route to handle messages from this topic
+          example: "/subscriptions/task-updates"
+
+    HealthCheckResult:
+      type: object
+      properties:
+        status:
+          type: string
+          description: Overall health status
+          example: "healthy"
+        dapr_integration:
+          type: boolean
+          description: Whether Dapr integration is working
+          example: true
+        checks:
+          type: object
+          description: Detailed health checks for individual components
+          properties:
+            database:
+              type: string
+              example: "connected"
+            redis:
+              type: string
+              example: "connected"
+            kafka:
+              type: string
+              example: "connected"
+            dapr:
+              type: string
+              example: "connected"
+
+  responses:
+    BadRequest:
+      description: Bad request - invalid input
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              detail:
+                type: string
+                example: "Invalid input data"
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              detail:
+                type: string
+                example: "Resource not found"
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              detail:
+                type: string
+                example: "An unexpected error occurred"

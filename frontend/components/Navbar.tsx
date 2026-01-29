@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
-import { User, LogOut, LayoutGrid, Menu, X, Sparkles } from "lucide-react";
+import { User, LogOut, LayoutGrid, Menu, X, Sparkles, Target } from "lucide-react";
 import NotificationBell from "@/components/NotificationBell";
 import WebSocketService from "@/utils/websocket";
 
@@ -47,14 +47,14 @@ useEffect(() => {
           : "z-[100] opacity-100"
       }`}
     >
-      <div className="backdrop-blur-xl border border-white/10 bg-slate-900/40 rounded-2xl px-6 py-3 flex justify-between items-center shadow-2xl">
+      <div className="backdrop-blur-xl border border-slate-700/50 bg-gradient-to-r from-slate-800/50 to-slate-900/50 rounded-2xl px-6 py-3 flex justify-between items-center shadow-xl">
         <div className="flex items-center gap-3">
           <Link href="/" className="flex items-center gap-2 group">
-            <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center shadow-[0_0_15px_rgba(37,99,235,0.4)] group-hover:rotate-6 transition-transform">
-              <LayoutGrid size={20} className="text-white fill-white/20" />
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 flex items-center justify-center shadow-[0_0_15px_rgba(99,102,241,0.4)] group-hover:rotate-6 transition-transform">
+              <Target size={20} className="text-white" />
             </div>
-            <span className="text-lg font-bold tracking-tight text-white group-hover:text-blue-400 transition-colors">
-              Premium<span className="font-light text-slate-400">Task</span>
+            <span className="text-lg font-bold tracking-tight text-white group-hover:text-indigo-400 transition-colors">
+              Task<span className="font-light text-slate-400">Flow</span>
             </span>
           </Link>
         </div>
@@ -66,13 +66,13 @@ useEffect(() => {
               <Link href="/chat">
                 <Button
                   variant="ghost"
-                  className="relative group overflow-hidden bg-slate-900/50 border border-slate-700/50 text-slate-300 hover:text-white h-9 px-4 text-xs font-bold uppercase tracking-wider transition-all duration-300 rounded-lg hover:border-blue-500/50 hover:shadow-[0_0_15px_rgba(59,130,246,0.2)]"
+                  className="relative group overflow-hidden bg-slate-800/50 border border-slate-700/50 text-slate-300 hover:text-white h-9 px-4 text-xs font-medium uppercase tracking-wider transition-all duration-300 rounded-lg hover:border-indigo-500/50 hover:shadow-[0_0_15px_rgba(99,102,241,0.2)]"
                 >
                   {/* Subtle Background Glow on Hover */}
-                  <span className="absolute inset-0 bg-gradient-to-r from-blue-600/10 to-purple-600/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <span className="absolute inset-0 bg-gradient-to-r from-indigo-600/10 to-purple-600/10 opacity-0 group-hover:opacity-100 transition-opacity" />
 
                   <span className="relative flex items-center gap-2">
-                    <Sparkles className="w-3.5 h-3.5 text-blue-400 group-hover:animate-pulse" />
+                    <Sparkles className="w-3.5 h-3.5 text-indigo-400 group-hover:animate-pulse" />
                     AI Chat
                   </span>
                 </Button>
@@ -80,11 +80,11 @@ useEffect(() => {
 
               <NotificationBell />
 
-              <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/5 border border-white/5 text-slate-300">
-                <div className="w-5 h-5 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-400 flex items-center justify-center">
+              <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-800/50 border border-slate-700/50 text-slate-300">
+                <div className="w-5 h-5 rounded-full bg-gradient-to-tr from-indigo-600 to-purple-400 flex items-center justify-center">
                   <User size={10} className="text-white" />
                 </div>
-                <span className="text-[10px] font-bold uppercase tracking-wider">
+                <span className="text-xs font-medium uppercase tracking-wider">
                   {user.email?.split("@")[0]}
                 </span>
               </div>
@@ -104,14 +104,14 @@ useEffect(() => {
               <Link href="/login">
                 <Button
                   variant="ghost"
-                  className="text-slate-300 hover:text-white h-9 px-4 text-xs font-bold uppercase tracking-wider"
+                  className="text-slate-300 hover:text-white h-9 px-4 text-xs font-medium uppercase tracking-wider"
                 >
                   Login
                 </Button>
               </Link>
               <Link href="/signup">
-                <Button className="bg-blue-600 text-white hover:bg-blue-500 h-9 px-5 rounded-xl text-xs font-bold shadow-lg shadow-blue-600/20 active:scale-95 transition-all">
-                  Join Now
+                <Button className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-500 hover:to-purple-500 h-9 px-5 rounded-xl text-xs font-medium shadow-lg shadow-indigo-500/20 active:scale-95 transition-all">
+                  Get Started
                 </Button>
               </Link>
             </div>
@@ -135,14 +135,14 @@ useEffect(() => {
               <Link href="/login">
                 <Button
                   variant="ghost"
-                  className="text-slate-300 hover:text-white h-9 px-4 text-xs font-bold uppercase tracking-wider"
+                  className="text-slate-300 hover:text-white h-9 px-4 text-xs font-medium uppercase tracking-wider"
                 >
                   Login
                 </Button>
               </Link>
               <Link href="/signup">
-                <Button className="bg-blue-600 text-white hover:bg-blue-500 h-9 px-5 rounded-xl text-xs font-bold shadow-lg shadow-blue-600/20 active:scale-95 transition-all">
-                  Join Now
+                <Button className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-500 hover:to-purple-500 h-9 px-5 rounded-xl text-xs font-medium shadow-lg shadow-indigo-500/20 active:scale-95 transition-all">
+                  Get Started
                 </Button>
               </Link>
             </div>
@@ -157,23 +157,23 @@ useEffect(() => {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            className="md:hidden mt-2 backdrop-blur-xl border border-white/10 bg-slate-900/80 rounded-2xl px-6 py-4 shadow-2xl"
+            className="md:hidden mt-2 backdrop-blur-xl border border-slate-700/50 bg-gradient-to-r from-slate-800/80 to-slate-900/80 rounded-2xl px-6 py-4 shadow-xl"
           >
             <div className="flex flex-col gap-3">
               <Link href="/chat" onClick={() => setIsOpen(false)}>
                 <Button
                   variant="ghost"
-                  className="w-full justify-start text-slate-300 hover:text-white h-10 text-sm font-bold"
+                  className="w-full justify-start text-slate-300 hover:text-white h-10 text-sm font-medium"
                 >
                   AI Chat
                 </Button>
               </Link>
 
-              <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 border border-white/5 text-slate-300">
-                <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-400 flex items-center justify-center">
+              <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-800/50 border border-slate-700/50 text-slate-300">
+                <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-indigo-600 to-purple-400 flex items-center justify-center">
                   <User size={12} className="text-white" />
                 </div>
-                <span className="text-xs font-bold uppercase tracking-wider">
+                <span className="text-xs font-medium uppercase tracking-wider">
                   {user.email?.split("@")[0]}
                 </span>
               </div>
@@ -184,7 +184,7 @@ useEffect(() => {
                   setIsOpen(false);
                 }}
                 variant="ghost"
-                className="w-full justify-start text-slate-500 hover:text-red-400 hover:bg-red-400/10 h-10 text-sm font-bold"
+                className="w-full justify-start text-slate-500 hover:text-red-400 hover:bg-red-400/10 h-10 text-sm font-medium"
               >
                 <LogOut size={16} className="mr-2" /> Logout
               </Button>
