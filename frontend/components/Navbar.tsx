@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import { User, LogOut, LayoutGrid, Menu, X, Sparkles, Target } from "lucide-react";
 import NotificationBell from "@/components/NotificationBell";
+import NotificationCenter from "@/components/NotificationCenter";
 import WebSocketService from "@/utils/websocket";
 
 const Navbar = () => {
@@ -78,7 +79,7 @@ useEffect(() => {
                 </Button>
               </Link>
 
-              <NotificationBell />
+              <NotificationCenter />
 
               <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-800/50 border border-slate-700/50 text-slate-300">
                 <div className="w-5 h-5 rounded-full bg-gradient-to-tr from-indigo-600 to-purple-400 flex items-center justify-center">
@@ -122,7 +123,7 @@ useEffect(() => {
         <div className="md:hidden flex items-center">
           {user ? (
             <div className="flex items-center gap-2">
-              <NotificationBell />
+              <NotificationCenter />
               <button
                 onClick={() => setIsOpen(!isOpen)}
                 className="text-slate-300 hover:text-white p-2"

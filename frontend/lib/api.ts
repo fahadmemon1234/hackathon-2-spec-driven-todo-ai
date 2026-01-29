@@ -76,6 +76,9 @@ export const api = {
     due_date?: string;
     is_recurring?: boolean;
     recurrence_rule?: string;
+    reminder_type?: string;
+    reminder_offset?: number;
+    reminder_time?: string;
   }): Promise<any> {
     const token = await api.getJwtToken();
     if (!token) {
@@ -141,6 +144,9 @@ export const api = {
     is_recurring?: boolean;
     recurrence_rule?: string;
     next_occurrence?: string;
+    reminder_type?: string;
+    reminder_offset?: number;
+    reminder_time?: string;
   }): Promise<any> {
     const token = await api.getJwtToken();
     if (!token) {

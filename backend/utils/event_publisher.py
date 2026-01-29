@@ -14,7 +14,7 @@ import sys
 import os
 # Add the backend directory to the path so we can import from models
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from backend.models import Task
+from models import Task
 
 
 class EventPublisher:
@@ -134,17 +134,23 @@ class EventPublisher:
             print("Task has no due date, skipping reminder event")
             return
 
-        # Calculate reminder time (1 hour before due date)
-        # For now, we'll use a simple calculation - in a real system you'd want to be more sophisticated
+        # Calculate reminder time based on task settings
         from datetime import timedelta
-        remind_at = task.due_date - timedelta(hours=1)
+        if task.reminder_offset is not None:
+            # Use the task-specific reminder offset
+            remind_at = task.due_date - timedelta(minutes=task.reminder_offset)
+        else:
+            # Use default reminder time (1 hour before due date)
+            remind_at = task.due_date - timedelta(hours=1)
 
         event_data = {
             "task_id": task.id,
             "user_id": user_id,
             "title": task.title,
-            "due_at": task.due_date.isoformat(),
-            "remind_at": remind_at.isoformat(),
+            "due_at": task.due_date.isoformat() if task.due_date else None,
+            "remind_at": remind_at.isoformat() if remind_at else None,
+            "reminder_type": task.reminder_type,
+            "reminder_offset": task.reminder_offset,
             "timestamp": datetime.utcnow().isoformat() + "Z"
         }
 
@@ -167,26 +173,71 @@ class EventPublisher:
             print(f"Dapr not available. Would publish reminder event for task {task.id}")
             print("Event data:", json.dumps(event_data, indent=2))
 
-        # Also publish to notifications topic for real-time updates
+        # Also publish to Kafka for the notification service
         if self.kafka_available:
             try:
-                # Create a simplified notification for real-time updates
+                # Create a simplified notification for the notification service
                 notification_data = {
                     "type": "reminder",
                     "task_id": task.id,
                     "user_id": user_id,
                     "title": task.title,
-                    "due_at": task.due_date.isoformat(),
+                    "due_at": task.due_date.isoformat() if task.due_date else None,
+                    "remind_at": remind_at.isoformat() if remind_at else None,
+                    "reminder_type": task.reminder_type,
                     "timestamp": datetime.utcnow().isoformat() + "Z"
                 }
 
-                self.kafka_producer.send('notifications', notification_data)
+                self.kafka_producer.send('reminders', notification_data)
                 self.kafka_producer.flush()  # Ensure the message is sent
-                print(f"Published real-time reminder notification for task {task.id}")
+                print(f"Published reminder event to Kafka for task {task.id}")
             except Exception as e:
-                print(f"Failed to publish real-time reminder notification for task {task.id}: {e}")
+                print(f"Failed to publish reminder event to Kafka for task {task.id}: {e}")
         else:
-            print(f"Kafka not available for real-time reminder notifications for task {task.id}")
+            print(f"Kafka not available for reminder events for task {task.id}")
+
+    def publish_reminder_scheduled_event(self, task: Task, user_id: str, reminder_time: datetime):
+        """
+        Publish an event indicating that a reminder has been scheduled.
+
+        Args:
+            task: The task object with due date
+            user_id: The user ID associated with the task
+            reminder_time: The time when the reminder is scheduled
+        """
+        event_data = {
+            "task_id": task.id,
+            "user_id": user_id,
+            "title": task.title,
+            "due_at": task.due_date.isoformat() if task.due_date else None,
+            "scheduled_reminder_at": reminder_time.isoformat() if reminder_time else None,
+            "reminder_type": task.reminder_type,
+            "timestamp": datetime.utcnow().isoformat() + "Z"
+        }
+
+        # Publish to Dapr pub/sub
+        if self.dapr_available:
+            try:
+                with self.dapr_client as client:
+                    client.publish_event(
+                        pubsub_name='reminderpubsub',  # This should match the Dapr pubsub component name
+                        topic_name='reminders',
+                        data=json.dumps(event_data),
+                        data_content_type='application/json'
+                    )
+                print(f"Published reminder scheduled event for task {task.id} at {reminder_time} via Dapr")
+            except Exception as e:
+                print(f"Failed to publish reminder scheduled event for task {task.id} via Dapr: {e}")
+                print("Event data:", json.dumps(event_data, indent=2))
+
+        # Also publish to Kafka for the notification service
+        if self.kafka_available:
+            try:
+                self.kafka_producer.send('reminders', event_data)
+                self.kafka_producer.flush()  # Ensure the message is sent
+                print(f"Published reminder scheduled event to Kafka for task {task.id}")
+            except Exception as e:
+                print(f"Failed to publish reminder scheduled event to Kafka for task {task.id}: {e}")
 
     def close(self):
         """Close the Dapr client and Kafka producer connections."""

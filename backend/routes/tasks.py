@@ -203,13 +203,16 @@ def create_task(
     # Publish task created event
     from utils.event_publisher import EventPublisher
     from utils.notification_utils import send_task_notification
+    from services.reminder_scheduler import get_reminder_scheduler
     publisher = EventPublisher()
     try:
         publisher.publish_task_event("created", new_task, user_id)
 
-        # If the task has a due date, publish a reminder event
+        # If the task has a due date, schedule a reminder
         if new_task.due_date:
-            publisher.publish_reminder_event(new_task, user_id)
+            # Use the reminder scheduler to properly handle the reminder
+            reminder_scheduler = get_reminder_scheduler()
+            reminder_scheduler.schedule_reminder_for_task(new_task)
 
         # Send notification about the new task creation
         send_task_notification(
@@ -319,14 +322,17 @@ def update_task(
     # Publish task updated event
     from utils.event_publisher import EventPublisher
     from utils.notification_utils import send_task_notification
+    from services.reminder_scheduler import get_reminder_scheduler
 
     publisher = EventPublisher()
     try:
         publisher.publish_task_event("updated", task, user_id)
 
-        # If the task has a due date, publish a reminder event
+        # If the task has a due date, schedule or reschedule a reminder
         if task.due_date:
-            publisher.publish_reminder_event(task, user_id)
+            # Use the reminder scheduler to properly handle the reminder
+            reminder_scheduler = get_reminder_scheduler()
+            reminder_scheduler.schedule_reminder_for_task(task)
 
         # Send notification about the task update
         send_task_notification(
@@ -422,14 +428,17 @@ def toggle_complete(
 
             # Publish task created event for the new recurring instance
             from utils.event_publisher import EventPublisher
+            from services.reminder_scheduler import get_reminder_scheduler
 
             publisher = EventPublisher()
             try:
                 publisher.publish_task_event("created", next_task, user_id)
 
-                # If the next task has a due date, publish a reminder event
+                # If the next task has a due date, schedule a reminder
                 if next_task.due_date:
-                    publisher.publish_reminder_event(next_task, user_id)
+                    # Use the reminder scheduler to properly handle the reminder
+                    reminder_scheduler = get_reminder_scheduler()
+                    reminder_scheduler.schedule_reminder_for_task(next_task)
             finally:
                 publisher.close()
 

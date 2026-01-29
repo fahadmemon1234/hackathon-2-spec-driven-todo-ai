@@ -24,9 +24,20 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         print(f"Error loading configuration from secrets: {e}")
         print("Continuing with default configuration...")
-    
+
     create_db_and_tables()
+
+    # Start the cron service for processing reminders in the background
+    import threading
+    from services.cron_service import CronService
+    cron_service = CronService()
+    cron_thread = threading.Thread(target=cron_service.start, daemon=True)
+    cron_thread.start()
+
     yield
+
+    # Cleanup
+    cron_service.stop()
 
 app = FastAPI(lifespan=lifespan, title="Todo Backend with Dapr Integration", version="1.0.0")
 

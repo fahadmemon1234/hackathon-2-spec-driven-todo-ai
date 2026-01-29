@@ -170,8 +170,15 @@ class NotificationService:
                 reminder_data = message.value
                 logger.info(f"Received reminder: {reminder_data}")
 
-                # Process the reminder with multiple notification channels
-                self.send_notification(reminder_data)
+                # Check if this is a reminder event or another type of event
+                event_type = reminder_data.get('type', 'reminder')
+
+                if event_type == 'reminder':
+                    # Process the reminder with multiple notification channels
+                    self.send_notification(reminder_data)
+                else:
+                    # Handle other types of events if needed
+                    logger.info(f"Received non-reminder event: {event_type}")
 
         except KeyboardInterrupt:
             logger.info("Shutting down notification service...")
