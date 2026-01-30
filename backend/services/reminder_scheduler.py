@@ -10,9 +10,12 @@ import logging
 from datetime import datetime, timedelta
 from typing import Dict, Any, Optional
 from sqlmodel import create_engine, Session, select
+import sys
+import os
+# Add the backend directory to the path so we can import from models
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from models import Task
 from utils.event_publisher import EventPublisher
-import os
 
 
 class ReminderScheduler:
@@ -171,7 +174,8 @@ class ReminderScheduler:
             # Find tasks with due dates that are within the next 10 minutes (for demo purposes)
             # In a real system, you would check for reminders that are due NOW
             from datetime import timedelta
-            now = datetime.utcnow()
+            from datetime import timezone
+            now = datetime.now(timezone.utc).replace(tzinfo=None)  # Make sure it's timezone-naive
             upcoming_threshold = now + timedelta(minutes=10)  # Check for reminders due in next 10 mins
 
             # Get tasks that have due dates within the threshold and are not completed
@@ -187,14 +191,32 @@ class ReminderScheduler:
                 # Check if a reminder should be sent based on the reminder offset
                 if task.reminder_offset is not None:
                     reminder_time = task.due_date - timedelta(minutes=task.reminder_offset)
-                    if now >= reminder_time:
+                    # Ensure both datetimes are timezone-naive for comparison
+                    if task.due_date.tzinfo is not None:
+                        task_due_date_naive = task.due_date.replace(tzinfo=None)
+                    else:
+                        task_due_date_naive = task.due_date
+
+                    if reminder_time.tzinfo is not None:
+                        reminder_time_naive = reminder_time.replace(tzinfo=None)
+                    else:
+                        reminder_time_naive = reminder_time
+
+                    if now >= reminder_time_naive:
                         # Send the reminder
                         self.event_publisher.publish_reminder_event(task, task.user_id)
                         sent_count += 1
                         self.logger.info(f"Sent reminder for task {task.id} due at {task.due_date}")
                 elif task.reminder_time is not None:
                     # If a specific reminder time is set, check if it's time to send
-                    if now >= task.reminder_time:
+                    # Ensure both datetimes are timezone-naive for comparison
+                    reminder_time = task.reminder_time
+                    if reminder_time.tzinfo is not None:
+                        reminder_time_naive = reminder_time.replace(tzinfo=None)
+                    else:
+                        reminder_time_naive = reminder_time
+
+                    if now >= reminder_time_naive:
                         # Send the reminder
                         self.event_publisher.publish_reminder_event(task, task.user_id)
                         sent_count += 1
@@ -202,7 +224,18 @@ class ReminderScheduler:
                 else:
                     # Default: send reminder 1 hour before due date
                     default_reminder_time = task.due_date - timedelta(hours=1)
-                    if now >= default_reminder_time:
+                    # Ensure both datetimes are timezone-naive for comparison
+                    if task.due_date.tzinfo is not None:
+                        task_due_date_naive = task.due_date.replace(tzinfo=None)
+                    else:
+                        task_due_date_naive = task.due_date
+
+                    if default_reminder_time.tzinfo is not None:
+                        default_reminder_time_naive = default_reminder_time.replace(tzinfo=None)
+                    else:
+                        default_reminder_time_naive = default_reminder_time
+
+                    if now >= default_reminder_time_naive:
                         # Send the reminder
                         self.event_publisher.publish_reminder_event(task, task.user_id)
                         sent_count += 1

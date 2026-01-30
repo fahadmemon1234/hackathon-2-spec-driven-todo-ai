@@ -1,4 +1,12 @@
 services:
+  dapr-placement:
+    image: daprio/dapr:latest
+    command: ["./placement", "-port", "50005"]
+    ports:
+      - "50005:50005"
+    networks:
+      - app-network
+
   backend:
     build:
       context: .
@@ -22,32 +30,27 @@ services:
     volumes:
       - ./components:/components
 
-  dapr-placement:
-    image: daprio/dapr:latest
-    command: ["./placement", "-port", "50005"]
-    ports:
-      - "50005:50005"
-    networks:
-      - app-network
-
   dapr-sidecar:
     image: daprio/dapr:latest
     command: ["./daprd",
       "--app-id", "backend-service",
       "--app-port", "8000",
+      "--app-protocol", "http",
       "--dapr-http-port", "3500",
       "--dapr-grpc-port", "50001",
       "--placement-host-address", "dapr-placement:50005",
-      "--components-path", "/components",
+      "--resources-path", "/components",
       "--config", "/dapr-config.yaml",
       "--log-level", "debug",
-      "--enable-api-logging"]
+      "--enable-api-logging",
+      "--app-channel-address", "backend"]
     ports:
       - "3500:3500"
       - "50001:50001"
     depends_on:
       - backend
       - dapr-placement
+      - kafka  # Add dependency on kafka to ensure it's ready
     networks:
       - app-network
     volumes:
@@ -63,9 +66,11 @@ services:
       - "3000:3000"
     environment:
       NEXT_PUBLIC_BACKEND_URL: http://localhost:8000
+      NEXT_PUBLIC_WEBSOCKET_URL: ws://localhost:8080
       BACKEND_INTERNAL_URL: http://backend:8000
     depends_on:
       - backend
+      - websocket-service
     networks:
       - app-network
 
@@ -120,6 +125,22 @@ services:
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
 
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    networks:
+      - app-network
+
+  websocket-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    command: python services/websocket_service.py
+    ports:
+      - "8080:8080"
+    environment:
+      KAFKA_BROKER: kafka:9092
+      DATABASE_URL: postgresql://user:password@db:5432/todo_db
+    depends_on:
+      - kafka
+      - db
     networks:
       - app-network
 

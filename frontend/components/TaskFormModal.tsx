@@ -18,6 +18,9 @@ interface TaskFormModalProps {
       due_date?: string;
       is_recurring?: boolean;
       recurrence_rule?: string;
+      reminder_type?: string;
+      reminder_offset?: number;
+      reminder_time?: string;
     },
     id?: string,
   ) => void;
@@ -31,6 +34,9 @@ interface TaskFormModalProps {
     due_date?: string;
     is_recurring?: boolean;
     recurrence_rule?: string;
+    reminder_type?: string;
+    reminder_offset?: number;
+    reminder_time?: string;
   };
 }
 

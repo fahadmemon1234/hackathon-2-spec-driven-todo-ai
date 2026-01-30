@@ -14,6 +14,10 @@ RUN apt-get update \
         postgresql-client \
         build-essential \
         libpq-dev \
+        curl \
+        wget \
+        gnupg \
+        ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy project requirements
@@ -24,6 +28,9 @@ RUN pip install --upgrade pip && pip install -r requirements.txt
 
 # Copy the entire project to preserve the directory structure
 COPY . /app/
+
+# Copy dapr config if it exists
+COPY ./dapr-config.yaml /app/dapr-config.yaml
 
 # Expose port
 EXPOSE 8000

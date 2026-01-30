@@ -154,9 +154,12 @@ def list_tasks(
     tasks = session.exec(statement).all()
     return tasks
 
+from fastapi import BackgroundTasks
+
 @router.post("/tasks", response_model=Task)
 def create_task(
     task_data: TaskCreate,
+    background_tasks: BackgroundTasks,
     user_id: str = Depends(get_current_user_id),
     session: Session = Depends(get_session)
 ):
@@ -174,7 +177,11 @@ def create_task(
         due_date=task_data.due_date,
         is_recurring=task_data.is_recurring or False,
         recurrence_rule=task_data.recurrence_rule,
-        next_occurrence=None  # Will be calculated if it's a recurring task
+        next_occurrence=None,  # Will be calculated if it's a recurring task
+        # Reminder fields
+        reminder_time=task_data.reminder_time,
+        reminder_type=task_data.reminder_type,
+        reminder_offset=task_data.reminder_offset
     )
 
     # If it's a recurring task, calculate the next occurrence
@@ -196,13 +203,12 @@ def create_task(
         if isinstance(value, datetime):
             task_dict[key] = value.isoformat()
 
-    # Save to state store asynchronously
-    import asyncio
-    asyncio.create_task(state_service.save_state(task_key, task_dict))
+    # Add state saving to background tasks
+    from services.state_service import state_service
+    background_tasks.add_task(state_service.save_state, task_key, task_dict)
 
     # Publish task created event
     from utils.event_publisher import EventPublisher
-    from utils.notification_utils import send_task_notification
     from services.reminder_scheduler import get_reminder_scheduler
     publisher = EventPublisher()
     try:
@@ -214,16 +220,27 @@ def create_task(
             reminder_scheduler = get_reminder_scheduler()
             reminder_scheduler.schedule_reminder_for_task(new_task)
 
-        # Send notification about the new task creation
-        send_task_notification(
-            session=session,
-            user_id=user_id,
-            task=new_task,
-            event_type="task_created",
-            custom_message=f"A new task '{new_task.title}' has been created!"
-        )
     finally:
         publisher.close()
+
+    # Send notification about the new task creation
+    # We'll create a separate session to ensure the task is fully committed before creating the notification
+    from utils.notification_utils import NotificationEventType, send_task_notification
+    from db import get_session
+
+    # Ensure the task is committed by using a fresh session for the notification
+    with next(get_session()) as notification_session:
+        # Verify that the user_id is valid before creating the notification
+        if not user_id:
+            raise HTTPException(status_code=400, detail="User ID is required to create notification")
+
+        send_task_notification(
+            session=notification_session,
+            user_id=user_id,
+            task=new_task,
+            event_type=NotificationEventType.TASK_CREATED,
+            custom_message=f"A new task '{new_task.title}' has been created!"
+        )
 
     return new_task
 
@@ -259,6 +276,7 @@ def get_task_by_id(
 def update_task(
     task_id: int,
     task_data: TaskUpdate,
+    background_tasks: BackgroundTasks,
     user_id: str = Depends(get_current_user_id),
     session: Session = Depends(get_session)
 ):
@@ -315,9 +333,9 @@ def update_task(
         if isinstance(value, datetime):
             task_dict[key] = value.isoformat()
 
-    # Update state store asynchronously
-    import asyncio
-    asyncio.create_task(state_service.save_state(task_key, task_dict))
+    # Add state updating to background tasks
+    from services.state_service import state_service
+    background_tasks.add_task(state_service.save_state, task_key, task_dict)
 
     # Publish task updated event
     from utils.event_publisher import EventPublisher
@@ -335,11 +353,12 @@ def update_task(
             reminder_scheduler.schedule_reminder_for_task(task)
 
         # Send notification about the task update
+        from utils.notification_utils import NotificationEventType
         send_task_notification(
             session=session,
             user_id=user_id,
             task=task,
-            event_type="task_updated",
+            event_type=NotificationEventType.TASK_UPDATED,
             custom_message=f"The task '{task.title}' has been updated."
         )
     finally:
@@ -350,15 +369,16 @@ def update_task(
 @router.delete("/tasks/{task_id}", status_code=204)
 def delete_task(
     task_id: int,
+    background_tasks: BackgroundTasks,
     user_id: str = Depends(get_current_user_id),
     session: Session = Depends(get_session)
 ):
     task = get_task_or_404(task_id, user_id, session)
 
-    # Delete task state from Dapr state store
+    # Delete task state from Dapr state store using background tasks
     task_key = TASK_STATE_KEY_PATTERN.format(taskId=task_id)
-    import asyncio
-    asyncio.create_task(state_service.delete_state(task_key))
+    from services.state_service import state_service
+    background_tasks.add_task(state_service.delete_state, task_key)
 
     session.delete(task)
     session.commit()
@@ -367,6 +387,7 @@ def delete_task(
 @router.patch("/tasks/{task_id}/complete", response_model=Task)
 def toggle_complete(
     task_id: int,
+    background_tasks: BackgroundTasks,
     user_id: str = Depends(get_current_user_id),
     session: Session = Depends(get_session)
 ):
@@ -422,9 +443,9 @@ def toggle_complete(
                 if isinstance(value, datetime):
                     task_dict[key] = value.isoformat()
 
-            # Save to state store asynchronously
-            import asyncio
-            asyncio.create_task(state_service.save_state(task_key, task_dict))
+            # Add state saving to background tasks
+            from services.state_service import state_service
+            background_tasks.add_task(state_service.save_state, task_key, task_dict)
 
             # Publish task created event for the new recurring instance
             from utils.event_publisher import EventPublisher
@@ -454,9 +475,9 @@ def toggle_complete(
         if isinstance(value, datetime):
             task_dict[key] = value.isoformat()
 
-    # Update state store asynchronously
-    import asyncio
-    asyncio.create_task(state_service.save_state(task_key, task_dict))
+    # Add state updating to background tasks
+    from services.state_service import state_service
+    background_tasks.add_task(state_service.save_state, task_key, task_dict)
 
     # Publish task completed event
     from utils.event_publisher import EventPublisher
@@ -467,11 +488,12 @@ def toggle_complete(
         publisher.publish_task_event("completed", task, user_id)
 
         # Send notification about the task completion
+        from utils.notification_utils import NotificationEventType
         send_task_notification(
             session=session,
             user_id=user_id,
             task=task,
-            event_type="task_completed",
+            event_type=NotificationEventType.TASK_COMPLETED,
             custom_message=f"The task '{task.title}' has been marked as completed!"
         )
     finally:

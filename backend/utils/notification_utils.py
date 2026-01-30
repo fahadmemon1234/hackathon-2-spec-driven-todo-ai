@@ -3,7 +3,11 @@ Utility functions to send notifications based on various events
 """
 from sqlmodel import Session
 from datetime import datetime
-from backend.models import Notification, User, Task, NotificationType
+import sys
+import os
+# Add the backend directory to the path so we can import from models
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from models import Notification, User, Task, NotificationType
 from schemas.notification import CreateNotificationRequest
 from crud.notification import create_notification
 from enum import Enum
@@ -73,11 +77,11 @@ def send_task_notification(
         title=details["title"],
         message=details["message"],
         type=details["type"],
-        related_task_id=task.id if hasattr(task, 'id') else None,
+        related_task_id=str(task.id) if hasattr(task, 'id') and task.id is not None else None,
         data={
-            "task_id": task.id if hasattr(task, 'id') else None,
+            "task_id": str(task.id) if hasattr(task, 'id') and task.id is not None else None,
             "task_title": task.title,
-            "event_type": event_type.value,
+            "event_type": event_type.value if hasattr(event_type, 'value') else event_type,
             "timestamp": datetime.utcnow().isoformat()
         }
     )

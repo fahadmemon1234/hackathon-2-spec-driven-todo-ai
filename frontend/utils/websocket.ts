@@ -24,9 +24,18 @@ class WebSocketService {
     }
 
     // Get the WebSocket URL from environment or use default
-    const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const wsHost = process.env.NEXT_PUBLIC_WEBSOCKET_URL || `${wsProtocol}//${window.location.hostname}:8080`;
-    const wsUrl = userId ? `${wsHost}/ws?user_id=${userId}` : `${wsHost}/ws`;
+    // Use NEXT_PUBLIC_WEBSOCKET_URL from environment variables if available
+    let wsBaseUrl = process.env.NEXT_PUBLIC_WEBSOCKET_URL || '';
+
+    // If no environment variable is set, construct from current location
+    if (!wsBaseUrl) {
+      const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+      wsBaseUrl = `${wsProtocol}//${window.location.hostname}:8080`;
+    }
+
+    // Add the WebSocket endpoint path and user ID if provided
+    const wsEndpoint = userId ? `/ws?user_id=${userId}` : '/ws';
+    const wsUrl = `${wsBaseUrl}${wsEndpoint}`;
 
     try {
       this.ws = new WebSocket(wsUrl);

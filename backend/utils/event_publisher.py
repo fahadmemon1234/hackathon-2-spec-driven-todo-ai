@@ -6,7 +6,6 @@ events to the event-driven architecture using Dapr.
 """
 
 import json
-import os
 from datetime import datetime
 from typing import Dict, Any, Optional
 
@@ -24,10 +23,14 @@ class EventPublisher:
         """Initialize the event publisher."""
         try:
             from dapr.clients import DaprClient
+            # Initialize Dapr client - in Docker environment, it should automatically connect to the sidecar
             self.dapr_client = DaprClient()
             self.dapr_available = True
         except ImportError:
             print("Dapr not available, events will be logged instead")
+            self.dapr_available = False
+        except Exception as e:
+            print(f"Dapr connection error: {e}. Events will be handled via fallback mechanisms.")
             self.dapr_available = False
 
         # Initialize Kafka producer for real-time notifications
@@ -82,20 +85,22 @@ class EventPublisher:
         # Publish to Dapr pub/sub
         if self.dapr_available:
             try:
-                with self.dapr_client as client:
+                from dapr.clients import DaprClient
+                # Use the Dapr client as a context manager
+                with DaprClient() as client:
                     client.publish_event(
                         pubsub_name='taskpubsub',  # This should match the Dapr pubsub component name
                         topic_name='task-events',
                         data=json.dumps(event_data),
                         data_content_type='application/json'
                     )
-                print(f"Published {event_type} event for task {task.id} via Dapr")
+                print(f"Published {event_data['event_type']} event for task {task.id} via Dapr")
             except Exception as e:
-                print(f"Failed to publish {event_type} event for task {task.id} via Dapr: {e}")
+                print(f"Failed to publish {event_data['event_type']} event for task {task.id} via Dapr: {e}")
                 print("Event data:", json.dumps(event_data, indent=2))
         else:
             # Log the event instead of publishing it
-            print(f"Dapr not available. Would publish {event_type} event for task {task.id}")
+            print(f"Dapr not available. Would publish {event_data['event_type']} event for task {task.id}")
             print("Event data:", json.dumps(event_data, indent=2))
 
         # Also publish to notifications topic for real-time updates
@@ -157,14 +162,16 @@ class EventPublisher:
         # Publish to Dapr pub/sub
         if self.dapr_available:
             try:
-                with self.dapr_client as client:
+                from dapr.clients import DaprClient
+                # Use the Dapr client as a context manager
+                with DaprClient() as client:
                     client.publish_event(
                         pubsub_name='reminderpubsub',  # This should match the Dapr pubsub component name
                         topic_name='reminders',
                         data=json.dumps(event_data),
                         data_content_type='application/json'
                     )
-                print(f"Published reminder event for task {task.id}, due at {task.due_date} via Dapr")
+                print(f"Published reminder event for task {task.id}, due at {event_data['due_at']} via Dapr")
             except Exception as e:
                 print(f"Failed to publish reminder event for task {task.id} via Dapr: {e}")
                 print("Event data:", json.dumps(event_data, indent=2))
@@ -218,14 +225,16 @@ class EventPublisher:
         # Publish to Dapr pub/sub
         if self.dapr_available:
             try:
-                with self.dapr_client as client:
+                from dapr.clients import DaprClient
+                # Use the Dapr client as a context manager
+                with DaprClient() as client:
                     client.publish_event(
                         pubsub_name='reminderpubsub',  # This should match the Dapr pubsub component name
                         topic_name='reminders',
                         data=json.dumps(event_data),
                         data_content_type='application/json'
                     )
-                print(f"Published reminder scheduled event for task {task.id} at {reminder_time} via Dapr")
+                print(f"Published reminder scheduled event for task {task.id} at {event_data['scheduled_reminder_at']} via Dapr")
             except Exception as e:
                 print(f"Failed to publish reminder scheduled event for task {task.id} via Dapr: {e}")
                 print("Event data:", json.dumps(event_data, indent=2))
