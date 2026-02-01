@@ -46,7 +46,7 @@ spec:
               containerPort: 8080
               protocol: TCP
           env:
-            - name: KAFKA_BROKER
+            - name: KAFKA_BROKERS
               value: {{ .Values.kafka.broker }}
           livenessProbe:
             httpGet:

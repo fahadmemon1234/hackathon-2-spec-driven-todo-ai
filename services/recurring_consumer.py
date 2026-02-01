@@ -19,6 +19,9 @@ backend_dir = os.path.join(project_root, 'backend')
 sys.path.insert(0, project_root)
 sys.path.insert(0, backend_dir)
 
+# Import configuration
+from backend.config import KAFKA_BROKERS
+
 from kafka import KafkaConsumer
 from sqlmodel import create_engine, Session
 from backend.models import Task, User  # Use absolute import from backend
@@ -37,21 +40,22 @@ logger = logging.getLogger(__name__)
 
 
 class RecurringTaskConsumer:
-    def __init__(self, kafka_bootstrap_servers: str = "localhost:9092", db_url: str = None):
+    def __init__(self, kafka_bootstrap_servers: str = None, db_url: str = None):
         """
         Initialize the recurring task consumer.
-        
+
         Args:
             kafka_bootstrap_servers: Kafka broker addresses
             db_url: Database connection URL
         """
         self.running = True
-        self.kafka_bootstrap_servers = kafka_bootstrap_servers
+        # Use the centralized configuration for Kafka brokers if not provided
+        self.kafka_bootstrap_servers = kafka_bootstrap_servers or KAFKA_BROKERS
         self.db_url = db_url or os.getenv("DATABASE_URL", "postgresql://user:password@localhost/dbname")
-        
+
         # Create database engine
         self.engine = create_engine(self.db_url)
-        
+
         # Initialize Kafka consumer
         self.consumer = KafkaConsumer(
             'task-events',
@@ -214,11 +218,10 @@ def main():
     Main function to run the recurring task consumer.
     """
     # Get configuration from environment variables or use defaults
-    kafka_servers = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
     db_url = os.getenv("DATABASE_URL", "postgresql://user:password@localhost/dbname")
-    
+
     # Create and run the consumer
-    consumer = RecurringTaskConsumer(kafka_bootstrap_servers=kafka_servers, db_url=db_url)
+    consumer = RecurringTaskConsumer(db_url=db_url)  # Will use KAFKA_BROKERS from config
     consumer.run()
 
 

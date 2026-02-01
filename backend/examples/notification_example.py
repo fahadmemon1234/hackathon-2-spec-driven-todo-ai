@@ -37,6 +37,7 @@ def create_notification_examples():
         task_notification = send_task_notification(
             session=session,
             user_id=user.id,
+            task_id=task.id,
             task=task,
             event_type=NotificationEventType.TASK_UPDATED,
             custom_message=f"The task '{task.title}' has been updated with new details."

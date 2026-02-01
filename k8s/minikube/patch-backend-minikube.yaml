@@ -12,5 +12,5 @@ spec:
           value: "postgresql://user:password@postgres-minikube:5432/todo_db"
         - name: REDIS_URL
           value: "redis://redis-master-minikube:6379"
-        - name: KAFKA_BROKER
+        - name: KAFKA_BROKERS
           value: "my-cluster-kafka-brokers-kafka:9092"

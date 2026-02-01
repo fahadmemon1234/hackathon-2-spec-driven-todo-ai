@@ -7,7 +7,7 @@ It integrates with Kafka to publish reminder events.
 
 import asyncio
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict, Any, Optional
 from sqlmodel import create_engine, Session, select
 import sys
@@ -45,7 +45,11 @@ class ReminderScheduler:
         if offset_minutes is None:
             # Default to 1 hour before due date
             offset_minutes = 60
-        
+
+        # Ensure due_date is timezone-aware for consistent calculations
+        if due_date.tzinfo is None:
+            due_date = due_date.replace(tzinfo=timezone.utc)
+
         return due_date - timedelta(minutes=offset_minutes)
 
     def schedule_reminder_for_task(self, task: Task) -> bool:
@@ -61,7 +65,7 @@ class ReminderScheduler:
         try:
             # Determine the reminder time based on task settings
             reminder_time = None
-            
+
             if task.reminder_offset is not None:
                 # Use the task-specific reminder offset
                 reminder_time = self.calculate_reminder_time(task.due_date, task.reminder_offset)
@@ -71,12 +75,18 @@ class ReminderScheduler:
             else:
                 # Use default reminder time (1 hour before due date)
                 reminder_time = self.calculate_reminder_time(task.due_date)
-            
+
+            # Ensure both datetimes are timezone-aware for comparison
+            if reminder_time.tzinfo is None:
+                reminder_time = reminder_time.replace(tzinfo=timezone.utc)
+
+            now = datetime.now(timezone.utc)
+
             # Check if the reminder time is in the past
-            if reminder_time <= datetime.utcnow():
+            if reminder_time <= now:
                 self.logger.warning(f"Reminder time for task {task.id} is in the past: {reminder_time}")
                 return False
-            
+
             # Publish the reminder event to Kafka
             reminder_data = {
                 "task_id": task.id,
@@ -85,17 +95,19 @@ class ReminderScheduler:
                 "due_at": task.due_date.isoformat() if task.due_date else None,
                 "remind_at": reminder_time.isoformat(),
                 "reminder_type": task.reminder_type,
-                "timestamp": datetime.utcnow().isoformat() + "Z"
+                "timestamp": now.isoformat() + "Z"
             }
-            
+
             # Publish the reminder event
             self.event_publisher.publish_reminder_event(task, task.user_id)
-            
+
             self.logger.info(f"Scheduled reminder for task {task.id} at {reminder_time}")
             return True
-            
+
         except Exception as e:
             self.logger.error(f"Error scheduling reminder for task {task.id}: {str(e)}")
+            import traceback
+            traceback.print_exc()
             return False
 
     def schedule_reminders_for_user(self, user_id: str) -> int:
@@ -174,8 +186,9 @@ class ReminderScheduler:
             # Find tasks with due dates that are within the next 10 minutes (for demo purposes)
             # In a real system, you would check for reminders that are due NOW
             from datetime import timedelta
-            from datetime import timezone
-            now = datetime.now(timezone.utc).replace(tzinfo=None)  # Make sure it's timezone-naive
+            now = datetime.now(timezone.utc)  # Use timezone-aware datetime
+
+            # Make sure all datetimes in the query are timezone-aware for consistent comparison
             upcoming_threshold = now + timedelta(minutes=10)  # Check for reminders due in next 10 mins
 
             # Get tasks that have due dates within the threshold and are not completed
@@ -190,52 +203,42 @@ class ReminderScheduler:
             for task in upcoming_tasks:
                 # Check if a reminder should be sent based on the reminder offset
                 if task.reminder_offset is not None:
-                    reminder_time = task.due_date - timedelta(minutes=task.reminder_offset)
-                    # Ensure both datetimes are timezone-naive for comparison
-                    if task.due_date.tzinfo is not None:
-                        task_due_date_naive = task.due_date.replace(tzinfo=None)
-                    else:
-                        task_due_date_naive = task.due_date
+                    # Ensure task.due_date is timezone-aware for calculation
+                    task_due_date = task.due_date
+                    if task_due_date.tzinfo is None:
+                        task_due_date = task_due_date.replace(tzinfo=timezone.utc)
 
-                    if reminder_time.tzinfo is not None:
-                        reminder_time_naive = reminder_time.replace(tzinfo=None)
-                    else:
-                        reminder_time_naive = reminder_time
+                    reminder_time = task_due_date - timedelta(minutes=task.reminder_offset)
 
-                    if now >= reminder_time_naive:
+                    # Compare timezone-aware datetimes
+                    if now >= reminder_time:
                         # Send the reminder
                         self.event_publisher.publish_reminder_event(task, task.user_id)
                         sent_count += 1
                         self.logger.info(f"Sent reminder for task {task.id} due at {task.due_date}")
                 elif task.reminder_time is not None:
                     # If a specific reminder time is set, check if it's time to send
-                    # Ensure both datetimes are timezone-naive for comparison
                     reminder_time = task.reminder_time
-                    if reminder_time.tzinfo is not None:
-                        reminder_time_naive = reminder_time.replace(tzinfo=None)
-                    else:
-                        reminder_time_naive = reminder_time
+                    # Ensure timezone-aware comparison
+                    if reminder_time.tzinfo is None:
+                        reminder_time = reminder_time.replace(tzinfo=timezone.utc)
 
-                    if now >= reminder_time_naive:
+                    if now >= reminder_time:
                         # Send the reminder
                         self.event_publisher.publish_reminder_event(task, task.user_id)
                         sent_count += 1
                         self.logger.info(f"Sent reminder for task {task.id} due at {task.due_date}")
                 else:
                     # Default: send reminder 1 hour before due date
-                    default_reminder_time = task.due_date - timedelta(hours=1)
-                    # Ensure both datetimes are timezone-naive for comparison
-                    if task.due_date.tzinfo is not None:
-                        task_due_date_naive = task.due_date.replace(tzinfo=None)
-                    else:
-                        task_due_date_naive = task.due_date
+                    # Ensure task.due_date is timezone-aware for calculation
+                    task_due_date = task.due_date
+                    if task_due_date.tzinfo is None:
+                        task_due_date = task_due_date.replace(tzinfo=timezone.utc)
 
-                    if default_reminder_time.tzinfo is not None:
-                        default_reminder_time_naive = default_reminder_time.replace(tzinfo=None)
-                    else:
-                        default_reminder_time_naive = default_reminder_time
+                    default_reminder_time = task_due_date - timedelta(hours=1)
 
-                    if now >= default_reminder_time_naive:
+                    # Compare timezone-aware datetimes
+                    if now >= default_reminder_time:
                         # Send the reminder
                         self.event_publisher.publish_reminder_event(task, task.user_id)
                         sent_count += 1

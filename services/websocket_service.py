@@ -13,6 +13,17 @@ import asyncio
 from concurrent.futures import ThreadPoolExecutor
 import aiokafka
 
+# Add the project root and backend directory to the Python path to resolve imports
+current_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(current_dir)  # Go up one level to project root
+backend_dir = os.path.join(project_root, 'backend')
+
+sys.path.insert(0, project_root)
+sys.path.insert(0, backend_dir)
+
+# Import configuration
+from backend.config import KAFKA_BROKERS
+
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -110,12 +121,10 @@ app.add_middleware(
 # Define the Kafka consumers before the startup event
 async def task_kafka_consumer():
     """Run Kafka consumer for task events"""
-    # Use environment variable for Kafka broker, default to internal Docker service name
-    kafka_broker = os.getenv("KAFKA_BROKER", "kafka:9092")
-
+    # Use the centralized configuration for Kafka brokers
     consumer = aiokafka.AIOKafkaConsumer(
         'task-events',  # Using the correct topic name
-        bootstrap_servers=[kafka_broker],
+        bootstrap_servers=[KAFKA_BROKERS],
         value_deserializer=lambda m: json.loads(m.decode('utf-8')),
         group_id='websocket-group',
         auto_offset_reset='earliest'  # Start from earliest message if no offset exists
@@ -141,12 +150,10 @@ async def task_kafka_consumer():
 
 async def notification_kafka_consumer():
     """Run Kafka consumer for notifications"""
-    # Use environment variable for Kafka broker, default to internal Docker service name
-    kafka_broker = os.getenv("KAFKA_BROKER", "kafka:9092")
-
+    # Use the centralized configuration for Kafka brokers
     consumer = aiokafka.AIOKafkaConsumer(
         'notifications',  # Using the notifications topic
-        bootstrap_servers=[kafka_broker],
+        bootstrap_servers=[KAFKA_BROKERS],
         value_deserializer=lambda m: json.loads(m.decode('utf-8')),
         group_id='websocket-notification-group',
         auto_offset_reset='earliest'  # Start from earliest message if no offset exists
@@ -219,12 +226,10 @@ async def websocket_endpoint(websocket: WebSocket):
 
 async def task_kafka_consumer():
     """Run Kafka consumer for task events"""
-    # Use environment variable for Kafka broker, default to internal Docker service name
-    kafka_broker = os.getenv("KAFKA_BROKER", "kafka:9092")
-
+    # Use the centralized configuration for Kafka brokers
     consumer = aiokafka.AIOKafkaConsumer(
         'task-events',  # Using the correct topic name
-        bootstrap_servers=[kafka_broker],
+        bootstrap_servers=[KAFKA_BROKERS],
         value_deserializer=lambda m: json.loads(m.decode('utf-8')),
         group_id='websocket-group',
         auto_offset_reset='earliest'  # Start from earliest message if no offset exists
@@ -250,12 +255,10 @@ async def task_kafka_consumer():
 
 async def notification_kafka_consumer():
     """Run Kafka consumer for notifications"""
-    # Use environment variable for Kafka broker, default to internal Docker service name
-    kafka_broker = os.getenv("KAFKA_BROKER", "kafka:9092")
-
+    # Use the centralized configuration for Kafka brokers
     consumer = aiokafka.AIOKafkaConsumer(
         'notifications',  # Using the notifications topic
-        bootstrap_servers=[kafka_broker],
+        bootstrap_servers=[KAFKA_BROKERS],
         value_deserializer=lambda m: json.loads(m.decode('utf-8')),
         group_id='websocket-notification-group',
         auto_offset_reset='earliest'  # Start from earliest message if no offset exists

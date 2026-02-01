@@ -26,6 +26,8 @@ class NotificationStatus(str, Enum):
 
 
 class User(SQLModel, table=True):
+    __tablename__ = "user"  # Explicitly set table name
+    
     id: Optional[str] = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
     email: str = Field(index=True, sa_column_kwargs={"unique": True})
     password_hash: str
@@ -33,6 +35,8 @@ class User(SQLModel, table=True):
 
 
 class Task(SQLModel, table=True):
+    __tablename__ = "task"  # Explicitly set table name
+    
     id: Optional[int] = Field(default=None, primary_key=True)
 
     # Store Better Auth user UUID as plain string
@@ -106,19 +110,18 @@ class Notification(SQLModel, table=True):
     __tablename__ = "notifications"
 
     id: Optional[str] = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
-    user_id: str = Field(nullable=False)
-    task_id: int = Field(nullable=False)  # must match DB NOT NULL
-    title: str
-    message: str
+    user_id: str = Field(description="User ID who receives the notification")
+    title: str = Field(max_length=200, description="Notification title")
+    message: str = Field(max_length=1000, description="Notification message content")
     type: str = Field(  # maps to DB column 'notification_type'
-        default=NotificationType.GENERAL.value.lower(),
+        default=NotificationType.GENERAL.value,
         sa_column=Column("notification_type", nullable=False)
     )
-    status: str = Field(default=NotificationStatus.UNREAD.value.lower())
-    related_task_id: Optional[str] = None
-    data: Optional[dict] = Field(default=None, sa_column=Column(JSON))
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    read_at: Optional[datetime] = None
+    status: str = Field(default=NotificationStatus.UNREAD.value)
+    related_task_id: Optional[str] = Field(default=None, description="Related task ID if applicable")
+    data: Optional[dict] = Field(default=None, sa_column=Column(JSON), description="Additional data as JSON")
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), description="Creation timestamp")
+    read_at: Optional[datetime] = Field(default=None, description="Read timestamp")
 
 
 class ConversationBase(SQLModel):
@@ -126,6 +129,8 @@ class ConversationBase(SQLModel):
 
 
 class Conversation(ConversationBase, table=True):
+    __tablename__ = "conversation"  # Explicitly set table name
+    
     id: Optional[int] = Field(default=None, primary_key=True)
     user_id: str = Field(foreign_key="user.id", nullable=False)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -142,11 +147,13 @@ class MessageBase(SQLModel):
 
 
 class Message(MessageBase, table=True):
+    __tablename__ = "message"  # Explicitly set table name
+    
     id: Optional[int] = Field(default=None, primary_key=True)
     conversation_id: int = Field(foreign_key="conversation.id", nullable=False)
     role: str = Field(regex="^(user|assistant)$")  # Using regex to enforce enum-like behavior
     content: str = Field(nullable=False)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
-    # Relationship to conversation 
+    # Relationship to conversation
     conversation: Conversation = Relationship(back_populates="messages")

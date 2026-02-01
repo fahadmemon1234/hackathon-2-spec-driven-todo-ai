@@ -1,4 +1,5 @@
 from typing import List, Optional
+from datetime import datetime, timezone
 from sqlmodel import Session, select, func
 from models import Notification, NotificationStatus
 from schemas.notification import CreateNotificationRequest, UpdateNotificationRequest
@@ -91,8 +92,7 @@ def update_notification(
     if update_data.status:
         notification.status = update_data.status
         if update_data.status == "read" and not notification.read_at:
-            from datetime import datetime
-            notification.read_at = datetime.utcnow()
+            notification.read_at = datetime.now(timezone.utc)
     
     session.add(notification)
     session.commit()
@@ -122,7 +122,7 @@ def mark_all_as_read(session: Session, user_id: str) -> int:
     updated_count = 0
     for notification in notifications:
         notification.status = NotificationStatus.READ
-        notification.read_at = datetime.utcnow()
+        notification.read_at = datetime.now(timezone.utc)
         session.add(notification)
         updated_count += 1
     

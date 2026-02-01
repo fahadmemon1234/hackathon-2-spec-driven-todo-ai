@@ -21,7 +21,7 @@ spec:
             secretKeyRef:
               name: production-secrets
               key: DB_PASSWORD
-        - name: KAFKA_BROKER
+        - name: KAFKA_BROKERS
           value: "prod-kafka-cluster:9092"
         - name: LOG_LEVEL
           value: "info"

@@ -143,7 +143,7 @@ async def get_reminder(reminder_id: str):
         print(f"Error retrieving reminder: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/dapr-subscribe")
+@router.get("/dapr-subscribe", operation_id="get_dapr_subscriptions")
 async def dapr_subscribe():
     """
     Dapr subscription endpoint to define which topics this service wants to subscribe to.

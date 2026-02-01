@@ -8,7 +8,7 @@ import os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 import asyncio
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from sqlmodel import create_engine, Session, select
 from models import Task
 from services.reminder_scheduler import ReminderScheduler
@@ -27,7 +27,7 @@ def test_reminder_functionality():
         title="Test Task with Reminder",
         description="This is a test task to verify reminder functionality",
         priority="medium",
-        due_date=datetime.utcnow() + timedelta(minutes=5),  # Due in 5 minutes
+        due_date=datetime.now(timezone.utc) + timedelta(minutes=5),  # Due in 5 minutes
         reminder_offset=2,  # Send reminder 2 minutes before due
         reminder_type="BEFORE_DUE"
     )

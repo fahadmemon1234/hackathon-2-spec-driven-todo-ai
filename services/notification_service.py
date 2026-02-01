@@ -9,6 +9,9 @@ backend_dir = os.path.join(project_root, 'backend')
 sys.path.insert(0, project_root)
 sys.path.insert(0, backend_dir)
 
+# Import configuration
+from backend.config import KAFKA_BROKERS
+
 from kafka import KafkaConsumer, KafkaProducer
 import json
 import smtplib
@@ -28,7 +31,7 @@ logger = logging.getLogger(__name__)
 
 class NotificationService:
     def __init__(self):
-        self.kafka_broker = os.getenv('KAFKA_BROKER', 'localhost:9092')
+        self.kafka_broker = KAFKA_BROKERS
         self.websocket_uri = os.getenv('WEBSOCKET_URI', 'ws://websocket-service:8080/ws')
         self.consumer = KafkaConsumer(
             'reminders',

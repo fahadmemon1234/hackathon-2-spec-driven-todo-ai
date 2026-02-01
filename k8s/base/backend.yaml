@@ -42,7 +42,7 @@ spec:
           value: "postgresql://user:password@postgres:5432/todo_db"
         - name: REDIS_URL
           value: "redis://redis-master:6379"
-        - name: KAFKA_BROKER
+        - name: KAFKA_BROKERS
           value: "my-cluster-kafka-brokers.kafka.svc.cluster.local:9092"
         livenessProbe:
           httpGet:
