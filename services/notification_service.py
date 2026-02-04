@@ -1,9 +1,22 @@
+import sys
+import os
+
+# Add the project root and backend directory to the Python path to resolve imports
+current_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(current_dir)  # Go up one level to project root
+backend_dir = os.path.join(project_root, 'backend')
+
+sys.path.insert(0, project_root)
+sys.path.insert(0, backend_dir)
+
+# Import configuration
+from backend.config import KAFKA_BROKERS
+
 from kafka import KafkaConsumer, KafkaProducer
 import json
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-import os
 import time
 import logging
 import asyncio
@@ -18,7 +31,7 @@ logger = logging.getLogger(__name__)
 
 class NotificationService:
     def __init__(self):
-        self.kafka_broker = os.getenv('KAFKA_BROKER', 'localhost:9092')
+        self.kafka_broker = KAFKA_BROKERS
         self.websocket_uri = os.getenv('WEBSOCKET_URI', 'ws://websocket-service:8080/ws')
         self.consumer = KafkaConsumer(
             'reminders',
@@ -160,8 +173,15 @@ class NotificationService:
                 reminder_data = message.value
                 logger.info(f"Received reminder: {reminder_data}")
 
-                # Process the reminder with multiple notification channels
-                self.send_notification(reminder_data)
+                # Check if this is a reminder event or another type of event
+                event_type = reminder_data.get('type', 'reminder')
+
+                if event_type == 'reminder':
+                    # Process the reminder with multiple notification channels
+                    self.send_notification(reminder_data)
+                else:
+                    # Handle other types of events if needed
+                    logger.info(f"Received non-reminder event: {event_type}")
 
         except KeyboardInterrupt:
             logger.info("Shutting down notification service...")

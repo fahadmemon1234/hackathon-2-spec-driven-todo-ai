@@ -1,65 +1,67 @@
-from fastapi import APIRouter, Depends, HTTPException, Path, Query
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, BackgroundTasks
 from typing import List, Optional
 from sqlmodel import Session, Field, select, SQLModel, case
 from models import Task
 from dependencies import get_current_user_id
 from db import get_session
-from datetime import datetime
+from datetime import datetime, timezone
 from fastapi.responses import Response
 from enum import Enum
 from services.state_service import state_service
 from constants import TASK_STATE_KEY_PATTERN
+from utils.notification_utils import NotificationEventType
+import logging
+import asyncio
 
-# Define the ReminderType enum to match the schema
+logger = logging.getLogger(__name__)
+
+# Define the ReminderType enum
 class ReminderType(str, Enum):
     EMAIL = "email"
     PUSH = "push"
     SMS = "sms"
     BEFORE_DUE = "before_due"
 
-# Define the TaskCreate model for new task requests
+
 class TaskCreate(SQLModel):
     title: str = Field(min_length=1, max_length=200)
     description: Optional[str] = Field(default=None, max_length=1000)
-    priority: Optional[str] = Field(default="medium", description="high | medium | low | urgent")
-    category: Optional[str] = Field(default=None, max_length=50, description="e.g., work, personal, health, shopping")
-    # New fields for Phase 5 - Advanced Features
-    tags: Optional[List[str]] = Field(default=[], description="List of tags for the task")
-    due_date: Optional[datetime] = Field(default=None, description="Due date for the task")
-    is_recurring: Optional[bool] = Field(default=False, description="Whether the task repeats")
-    recurrence_rule: Optional[str] = Field(default=None, max_length=200, description="RRULE format recurrence pattern")
-    reminder_time: Optional[datetime] = Field(default=None, description="Time to send reminder")
-    reminder_type: Optional[ReminderType] = Field(default=None, description="Type of reminder: email, push, sms, before_due")
-    reminder_offset: Optional[int] = Field(default=None, description="Minutes before due date to send reminder")
+    priority: Optional[str] = Field(default="medium")
+    category: Optional[str] = Field(default=None, max_length=50)
+    tags: Optional[List[str]] = Field(default=[])
+    due_date: Optional[datetime] = None
+    is_recurring: Optional[bool] = False
+    recurrence_rule: Optional[str] = None
+    reminder_time: Optional[datetime] = None
+    reminder_type: Optional[ReminderType] = None
+    reminder_offset: Optional[int] = None
 
-# Define the TaskUpdate model for partial updates
+
 class TaskUpdate(SQLModel):
-    title: Optional[str] = Field(default=None, min_length=1, max_length=200)
-    description: Optional[str] = Field(default=None, max_length=1000)
-    priority: Optional[str] = Field(default=None, description="high | medium | low | urgent")
-    category: Optional[str] = Field(default=None, max_length=50, description="e.g., work, personal, health, shopping")
+    title: Optional[str] = None
+    description: Optional[str] = None
+    priority: Optional[str] = None
+    category: Optional[str] = None
     completed: Optional[bool] = None
-    # New fields for Phase 5 - Advanced Features
-    tags: Optional[List[str]] = Field(default=None, description="List of tags for the task")
-    due_date: Optional[datetime] = Field(default=None, description="Due date for the task")
-    is_recurring: Optional[bool] = Field(default=None, description="Whether the task repeats")
-    recurrence_rule: Optional[str] = Field(default=None, max_length=200, description="RRULE format recurrence pattern")
-    next_occurrence: Optional[datetime] = Field(default=None, description="Next occurrence of recurring task")
-    reminder_time: Optional[datetime] = Field(default=None, description="Time to send reminder")
-    reminder_type: Optional[ReminderType] = Field(default=None, description="Type of reminder: email, push, sms, before_due")
-    reminder_offset: Optional[int] = Field(default=None, description="Minutes before due date to send reminder")
+    tags: Optional[List[str]] = None
+    due_date: Optional[datetime] = None
+    is_recurring: Optional[bool] = None
+    recurrence_rule: Optional[str] = None
+    next_occurrence: Optional[datetime] = None
+    reminder_time: Optional[datetime] = None
+    reminder_type: Optional[ReminderType] = None
+    reminder_offset: Optional[int] = None
+
 
 router = APIRouter()
 
+
 def get_task_or_404(task_id: int, user_id: str, session: Session) -> Task:
-    """
-    Helper function to fetch task with ownership verification
-    """
     task = session.get(Task, task_id)
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
     if task.user_id != user_id:
-        raise HTTPException(status_code=403, detail="Not authorized to access this task")
+        raise HTTPException(status_code=403, detail="Not authorized")
     return task
 
 @router.get("/tasks", response_model=List[Task])
@@ -154,12 +156,20 @@ def list_tasks(
     tasks = session.exec(statement).all()
     return tasks
 
+
+
 @router.post("/tasks", response_model=Task)
 def create_task(
     task_data: TaskCreate,
+    background_tasks: BackgroundTasks,
     user_id: str = Depends(get_current_user_id),
-    session: Session = Depends(get_session)
+    session: Session = Depends(get_session),
 ):
+    from utils.event_publisher import EventPublisher
+    from services.reminder_scheduler import get_reminder_scheduler
+    from utils.recurrence_utils import calculate_next_occurrence
+    from utils.notification_utils import send_task_notification
+
     new_task = Task(
         user_id=user_id,
         title=task_data.title,
@@ -167,62 +177,65 @@ def create_task(
         priority=task_data.priority or "medium",
         category=task_data.category,
         completed=False,
-        created_at=datetime.utcnow(),
-        updated_at=datetime.utcnow(),
-        # New fields for Phase 5 - Advanced Features
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc),
         tags=task_data.tags or [],
         due_date=task_data.due_date,
         is_recurring=task_data.is_recurring or False,
         recurrence_rule=task_data.recurrence_rule,
-        next_occurrence=None  # Will be calculated if it's a recurring task
+        reminder_time=task_data.reminder_time,
+        reminder_type=task_data.reminder_type,
+        reminder_offset=task_data.reminder_offset,
     )
 
-    # If it's a recurring task, calculate the next occurrence
-    if new_task.is_recurring and new_task.recurrence_rule:
-        from utils.recurrence_utils import calculate_next_occurrence
-        if new_task.due_date:
-            next_occurrence = calculate_next_occurrence(new_task.recurrence_rule, new_task.due_date)
-            new_task.next_occurrence = next_occurrence
+    if new_task.is_recurring and new_task.recurrence_rule and new_task.due_date:
+        new_task.next_occurrence = calculate_next_occurrence(
+            new_task.recurrence_rule, new_task.due_date
+        )
 
     session.add(new_task)
-    session.commit()
+    session.commit()          # ✅ TASK SAVED
     session.refresh(new_task)
 
-    # Save task state to Dapr state store
-    task_key = TASK_STATE_KEY_PATTERN.format(taskId=new_task.id)
-    task_dict = new_task.dict()
-    # Convert datetime objects to strings for JSON serialization
-    for key, value in task_dict.items():
-        if isinstance(value, datetime):
-            task_dict[key] = value.isoformat()
+    # Save to Dapr state store (non-blocking)
+    try:
+        task_key = TASK_STATE_KEY_PATTERN.format(taskId=new_task.id)
+        task_dict = {
+            k: (v.isoformat() if isinstance(v, datetime) else v)
+            for k, v in new_task.dict().items()
+        }
+        background_tasks.add_task(state_service.save_state, task_key, task_dict)
+    except Exception as e:
+        logger.warning(f"Dapr state save failed but task created: {e}")
 
-    # Save to state store asynchronously
-    import asyncio
-    asyncio.create_task(state_service.save_state(task_key, task_dict))
-
-    # Publish task created event
-    from utils.event_publisher import EventPublisher
-    from utils.notification_utils import send_task_notification
+    # Publish event
     publisher = EventPublisher()
     try:
         publisher.publish_task_event("created", new_task, user_id)
 
-        # If the task has a due date, publish a reminder event
         if new_task.due_date:
-            publisher.publish_reminder_event(new_task, user_id)
-
-        # Send notification about the new task creation
-        send_task_notification(
-            session=session,
-            user_id=user_id,
-            task=new_task,
-            event_type="task_created",
-            custom_message=f"A new task '{new_task.title}' has been created!"
-        )
+            scheduler = get_reminder_scheduler()
+            scheduler.schedule_reminder_for_task(new_task)
     finally:
         publisher.close()
 
+    # 🔔 SAFE NOTIFICATION (NEW SIGNATURE)
+    try:
+        send_task_notification(
+            session=session,
+            user_id=new_task.user_id,
+            task_id=new_task.id,
+            title="New Task Created",
+            task=new_task,
+            event_type=NotificationEventType.TASK_CREATED,
+            notification_type="task_created",
+            custom_message=f"A new task '{new_task.title}' has been created!",
+        )
+    except Exception as e:
+        logger.warning(f"Notification failed but task created: {e}")
+
     return new_task
+
 
 @router.get("/tasks/{task_id}", response_model=Task)
 def get_task_by_id(
@@ -230,27 +243,30 @@ def get_task_by_id(
     user_id: str = Depends(get_current_user_id),
     session: Session = Depends(get_session)
 ):
-    # First try to get from state store
-    task_key = TASK_STATE_KEY_PATTERN.format(taskId=task_id)
-    task_from_state = asyncio.run(state_service.get_state(task_key))
+    # First try to get from state store (non-blocking)
+    try:
+        task_key = TASK_STATE_KEY_PATTERN.format(taskId=task_id)
+        task_from_state = asyncio.run(state_service.get_state(task_key))
 
-    if task_from_state:
-        # If found in state store, return it
-        # Convert datetime strings back to datetime objects if needed
-        for key, value in task_from_state.items():
-            if isinstance(value, str):
-                try:
-                    # Try to parse as ISO format datetime
-                    from datetime import datetime
-                    task_from_state[key] = datetime.fromisoformat(value.replace('Z', '+00:00'))
-                except ValueError:
-                    # If not a datetime string, keep as is
-                    pass
-        return Task(**task_from_state)
-    else:
-        # If not in state store, get from database
-        task = get_task_or_404(task_id, user_id, session)
-        return task
+        if task_from_state:
+            # If found in state store, return it
+            # Convert datetime strings back to datetime objects if needed
+            for key, value in task_from_state.items():
+                if isinstance(value, str):
+                    try:
+                        # Try to parse as ISO format datetime
+                        from datetime import datetime
+                        task_from_state[key] = datetime.fromisoformat(value.replace('Z', '+00:00'))
+                    except ValueError:
+                        # If not a datetime string, keep as is
+                        pass
+            return Task(**task_from_state)
+    except Exception as e:
+        logger.warning(f"Dapr state retrieval failed for task {task_id}, falling back to database: {e}")
+
+    # If not in state store or error occurred, get from database
+    task = get_task_or_404(task_id, user_id, session)
+    return task
 
 @router.put("/tasks/{task_id}", response_model=Task)
 def update_task(
@@ -304,17 +320,20 @@ def update_task(
     session.commit()
     session.refresh(task)
 
-    # Update task state in Dapr state store
-    task_key = TASK_STATE_KEY_PATTERN.format(taskId=task.id)
-    task_dict = task.dict()
-    # Convert datetime objects to strings for JSON serialization
-    for key, value in task_dict.items():
-        if isinstance(value, datetime):
-            task_dict[key] = value.isoformat()
+    # Update task state in Dapr state store (non-blocking)
+    try:
+        task_key = TASK_STATE_KEY_PATTERN.format(taskId=task.id)
+        task_dict = task.dict()
+        # Convert datetime objects to strings for JSON serialization
+        for key, value in task_dict.items():
+            if isinstance(value, datetime):
+                task_dict[key] = value.isoformat()
 
-    # Update state store asynchronously
-    import asyncio
-    asyncio.create_task(state_service.save_state(task_key, task_dict))
+        # Update state store asynchronously
+        import asyncio
+        asyncio.create_task(state_service.save_state(task_key, task_dict))
+    except Exception as e:
+        logger.warning(f"Dapr state update failed for task {task.id}, but update continues: {e}")
 
     # Publish task updated event
     from utils.event_publisher import EventPublisher
@@ -329,13 +348,19 @@ def update_task(
             publisher.publish_reminder_event(task, user_id)
 
         # Send notification about the task update
-        send_task_notification(
-            session=session,
-            user_id=user_id,
-            task=task,
-            event_type="task_updated",
-            custom_message=f"The task '{task.title}' has been updated."
-        )
+        try:
+            send_task_notification(
+                session=session,
+                user_id=user_id,
+                task_id=task.id,
+                title="Task Updated",
+                task=task,
+                event_type=NotificationEventType.TASK_UPDATED,
+                notification_type="task_updated",
+                custom_message=f"The task '{task.title}' has been updated."
+            )
+        except Exception as e:
+            logger.warning(f"Notification failed but task updated: {e}")
     finally:
         publisher.close()
 
@@ -349,10 +374,13 @@ def delete_task(
 ):
     task = get_task_or_404(task_id, user_id, session)
 
-    # Delete task state from Dapr state store
-    task_key = TASK_STATE_KEY_PATTERN.format(taskId=task_id)
-    import asyncio
-    asyncio.create_task(state_service.delete_state(task_key))
+    # Delete task state from Dapr state store (non-blocking)
+    try:
+        task_key = TASK_STATE_KEY_PATTERN.format(taskId=task_id)
+        import asyncio
+        asyncio.create_task(state_service.delete_state(task_key))
+    except Exception as e:
+        logger.warning(f"Dapr state deletion failed for task {task_id}, but deletion continues: {e}")
 
     session.delete(task)
     session.commit()
@@ -416,9 +444,12 @@ def toggle_complete(
                 if isinstance(value, datetime):
                     task_dict[key] = value.isoformat()
 
-            # Save to state store asynchronously
-            import asyncio
-            asyncio.create_task(state_service.save_state(task_key, task_dict))
+            # Save to state store asynchronously (non-blocking)
+            try:
+                import asyncio
+                asyncio.create_task(state_service.save_state(task_key, task_dict))
+            except Exception as e:
+                logger.warning(f"Dapr state save failed for new recurring task {next_task.id}, but operation continues: {e}")
 
             # Publish task created event for the new recurring instance
             from utils.event_publisher import EventPublisher
@@ -437,17 +468,20 @@ def toggle_complete(
     session.commit()
     session.refresh(task)
 
-    # Update task state in Dapr state store
-    task_key = TASK_STATE_KEY_PATTERN.format(taskId=task.id)
-    task_dict = task.dict()
-    # Convert datetime objects to strings for JSON serialization
-    for key, value in task_dict.items():
-        if isinstance(value, datetime):
-            task_dict[key] = value.isoformat()
+    # Update task state in Dapr state store (non-blocking)
+    try:
+        task_key = TASK_STATE_KEY_PATTERN.format(taskId=task.id)
+        task_dict = task.dict()
+        # Convert datetime objects to strings for JSON serialization
+        for key, value in task_dict.items():
+            if isinstance(value, datetime):
+                task_dict[key] = value.isoformat()
 
-    # Update state store asynchronously
-    import asyncio
-    asyncio.create_task(state_service.save_state(task_key, task_dict))
+        # Update state store asynchronously
+        import asyncio
+        asyncio.create_task(state_service.save_state(task_key, task_dict))
+    except Exception as e:
+        logger.warning(f"Dapr state update failed for task {task.id}, but update continues: {e}")
 
     # Publish task completed event
     from utils.event_publisher import EventPublisher
@@ -458,13 +492,19 @@ def toggle_complete(
         publisher.publish_task_event("completed", task, user_id)
 
         # Send notification about the task completion
-        send_task_notification(
-            session=session,
-            user_id=user_id,
-            task=task,
-            event_type="task_completed",
-            custom_message=f"The task '{task.title}' has been marked as completed!"
-        )
+        try:
+            send_task_notification(
+                session=session,
+                user_id=user_id,
+                task_id=task.id,
+                title="Task Completed",
+                task=task,
+                event_type=NotificationEventType.TASK_COMPLETED,
+                notification_type="task_completed",
+                custom_message=f"The task '{task.title}' has been marked as completed!"
+            )
+        except Exception as e:
+            logger.warning(f"Notification failed but task completion processed: {e}")
     finally:
         publisher.close()
 

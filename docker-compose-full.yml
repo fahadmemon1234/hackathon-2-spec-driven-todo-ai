@@ -41,7 +41,7 @@ services:
     ports:
       - "8080:8080"
     environment:
-      KAFKA_BROKER: kafka:9092
+      KAFKA_BROKERS: kafka:9092
       ENVIRONMENT: development
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
     env_file:
@@ -57,7 +57,7 @@ services:
       dockerfile: Dockerfile.notification
     environment:
       DATABASE_URL: postgresql://user:password@db:5432/todo_db
-      KAFKA_BROKER: kafka:9092
+      KAFKA_BROKERS: kafka:9092
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
     env_file:
       - .env
@@ -73,7 +73,7 @@ services:
       dockerfile: Dockerfile.recurring
     environment:
       DATABASE_URL: postgresql://user:password@db:5432/todo_db
-      KAFKA_BROKER: kafka:9092
+      KAFKA_BROKERS: kafka:9092
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
     env_file:
       - .env

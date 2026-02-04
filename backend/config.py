@@ -7,23 +7,26 @@ from typing import Optional
 from constants import DAPR_HTTP_PORT, DAPR_STATE_STORE_NAME, DAPR_PUBSUB_NAME
 
 # Dapr configuration constants
-DAPR_HTTP_PORT = 3500
-DAPR_GRPC_PORT = 50001
-DAPR_APP_ID = "backend-service"
-DAPR_PUBSUB_NAME = "kafka-pubsub"
-DAPR_STATE_STORE_NAME = "statestore"
+DAPR_HTTP_PORT = int(os.getenv("DAPR_HTTP_PORT", 3500))
+DAPR_GRPC_PORT = int(os.getenv("DAPR_GRPC_PORT", 50001))
+DAPR_APP_ID = os.getenv("DAPR_APP_ID", "backend-service")
+DAPR_PUBSUB_NAME = os.getenv("DAPR_PUBSUB_NAME", "kafka-pubsub")
+DAPR_STATE_STORE_NAME = os.getenv("DAPR_STATE_STORE_NAME", "statestore")
 
 # Component paths
-DAPR_COMPONENTS_PATH = "./components"
+DAPR_COMPONENTS_PATH = os.getenv("DAPR_COMPONENTS_PATH", "./components")
 
 # Timeout configurations
-DAPR_HTTP_TIMEOUT_SECONDS = 30
+DAPR_HTTP_TIMEOUT_SECONDS = int(os.getenv("DAPR_HTTP_TIMEOUT_SECONDS", 30))
 
 # Logging configuration for Dapr
-DAPR_LOG_LEVEL = "info"
+DAPR_LOG_LEVEL = os.getenv("DAPR_LOG_LEVEL", "info")
+
+# Flag to enable/disable Dapr integration
+DAPR_ENABLED = os.getenv("DAPR_ENABLED", "true").lower() == "true"
 
 # Default values (fallback if secrets are not available)
-DEFAULT_KAFKA_BROKERS = "kafka:9092"
+DEFAULT_KAFKA_BROKERS = "localhost:9092"  # Use localhost for local development
 DEFAULT_REDIS_HOST = "redis:6379"
 DEFAULT_REDIS_PASSWORD = ""
 

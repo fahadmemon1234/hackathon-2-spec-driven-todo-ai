@@ -1,4 +1,12 @@
 services:
+  dapr-placement:
+    image: daprio/dapr:latest
+    command: ["./placement", "-port", "50005"]
+    ports:
+      - "50005:50005"
+    networks:
+      - app-network
+
   backend:
     build:
       context: .
@@ -8,7 +16,7 @@ services:
     environment:
       DATABASE_URL: postgresql://neondb_owner:npg_Lvigx2SDY1ba@ep-billowing-violet-a4n2y54m-pooler.us-east-1.aws.neon.tech/Todo?sslmode=require&channel_binding=require
       REDIS_URL: redis://redis:6379
-      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      KAFKA_BROKERS: kafka:9092
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
     env_file:
       - .env
@@ -22,32 +30,27 @@ services:
     volumes:
       - ./components:/components
 
-  dapr-placement:
-    image: daprio/dapr:latest
-    command: ["./placement", "-port", "50005"]
-    ports:
-      - "50005:50005"
-    networks:
-      - app-network
-
   dapr-sidecar:
     image: daprio/dapr:latest
     command: ["./daprd",
       "--app-id", "backend-service",
       "--app-port", "8000",
+      "--app-protocol", "http",
       "--dapr-http-port", "3500",
       "--dapr-grpc-port", "50001",
       "--placement-host-address", "dapr-placement:50005",
-      "--components-path", "/components",
+      "--resources-path", "/components",
       "--config", "/dapr-config.yaml",
       "--log-level", "debug",
-      "--enable-api-logging"]
+      "--enable-api-logging",
+      "--app-channel-address", "backend"]
     ports:
       - "3500:3500"
       - "50001:50001"
     depends_on:
       - backend
       - dapr-placement
+      - kafka  # Add dependency on kafka to ensure it's ready
     networks:
       - app-network
     volumes:
@@ -60,11 +63,14 @@ services:
       context: .
       dockerfile: Dockerfile.frontend
     ports:
-      - "3001:3000"
+      - "3000:3000"
     environment:
       NEXT_PUBLIC_BACKEND_URL: http://localhost:8000
+      NEXT_PUBLIC_WEBSOCKET_URL: ws://localhost:8080
+      BACKEND_INTERNAL_URL: http://backend:8000
     depends_on:
       - backend
+      - websocket-service
     networks:
       - app-network
 
@@ -122,14 +128,29 @@ services:
     networks:
       - app-network
 
-  recurring-consumer:
+  websocket-service:
     build:
       context: .
       dockerfile: Dockerfile.backend
-    command: python services/recurring_consumer.py
+    command: python services/websocket_service.py
+    ports:
+      - "8080:8080"
+    environment:
+      KAFKA_BROKERS: kafka:9092
+      DATABASE_URL: postgresql://user:password@db:5432/todo_db
+    depends_on:
+      - kafka
+      - db
+    networks:
+      - app-network
+
+  recurring-consumer:
+    build:
+      context: .
+      dockerfile: Dockerfile.recurring
     environment:
       DATABASE_URL: postgresql://user:password@db:5432/todo_db
-      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      KAFKA_BROKERS: kafka:9092
     depends_on:
       - db
       - kafka

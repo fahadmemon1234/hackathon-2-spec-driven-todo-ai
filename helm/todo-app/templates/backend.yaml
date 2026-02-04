@@ -50,7 +50,7 @@ spec:
               value: "postgresql://{{ .Values.postgresql.username }}:password@{{ .Values.postgresql.host }}:{{ .Values.postgresql.port }}/{{ .Values.postgresql.database }}"
             - name: REDIS_URL
               value: "redis://{{ .Values.redis.host }}:{{ .Values.redis.port }}"
-            - name: KAFKA_BROKER
+            - name: KAFKA_BROKERS
               value: {{ .Values.kafka.broker }}
           livenessProbe:
             httpGet:

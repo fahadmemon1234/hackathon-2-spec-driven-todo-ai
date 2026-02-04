@@ -17,8 +17,9 @@ if config.config_file_name is not None:
 # for 'autogenerate' support
 import sys
 import os
-sys.path.append(os.path.dirname(os.path.dirname(__file__)))  # Add parent directory to path
-from backend.models import SQLModel
+# Add the backend directory to the Python path so we can import models
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+from models import SQLModel
 target_metadata = SQLModel.metadata
 
 # other values from the config, defined by the needs of env.py,

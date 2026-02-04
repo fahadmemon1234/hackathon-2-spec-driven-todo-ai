@@ -22,7 +22,7 @@ spec:
         ports:
         - containerPort: 8080
         env:
-        - name: KAFKA_BROKER
+        - name: KAFKA_BROKERS
           value: "my-cluster-kafka-brokers.kafka.svc.cluster.local:9092"
         - name: DAPR_COMPONENTS_PATH
           value: "/dapr-components"

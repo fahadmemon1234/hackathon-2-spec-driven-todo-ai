@@ -1,4 +1,5 @@
-import asyncio
+import sys
+import os
 import json
 import logging
 from datetime import datetime
@@ -8,7 +9,20 @@ from fastapi.middleware.cors import CORSMiddleware
 from kafka import KafkaConsumer
 import threading
 import uvicorn
-import os
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
+import aiokafka
+
+# Add the project root and backend directory to the Python path to resolve imports
+current_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(current_dir)  # Go up one level to project root
+backend_dir = os.path.join(project_root, 'backend')
+
+sys.path.insert(0, project_root)
+sys.path.insert(0, backend_dir)
+
+# Import configuration
+from backend.config import KAFKA_BROKERS
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -30,7 +44,8 @@ class ConnectionManager:
             self.user_connections[user_id].append(websocket)
 
     def disconnect(self, websocket: WebSocket, user_id: str = None):
-        self.active_connections.remove(websocket)
+        if websocket in self.active_connections:
+            self.active_connections.remove(websocket)
 
         # Remove from user-specific connections if user_id is provided
         if user_id and user_id in self.user_connections:
@@ -54,7 +69,8 @@ class ConnectionManager:
 
         # Remove disconnected connections
         for connection in disconnected:
-            self.active_connections.remove(connection)
+            if connection in self.active_connections:
+                self.active_connections.remove(connection)
 
     async def send_to_user(self, user_id: str, message: str):
         """Send a message to all connections of a specific user"""
@@ -69,12 +85,24 @@ class ConnectionManager:
 
             # Remove disconnected connections from user's list
             for connection in disconnected:
-                self.user_connections[user_id].remove(connection)
-                self.active_connections.remove(connection)
+                if connection in self.user_connections[user_id]:
+                    self.user_connections[user_id].remove(connection)
+                if connection in self.active_connections:
+                    self.active_connections.remove(connection)
 
                 # Clean up empty lists
-                if not self.user_connections[user_id]:
+                if user_id in self.user_connections and not self.user_connections[user_id]:
                     del self.user_connections[user_id]
+
+    async def broadcast_to_user(self, user_id: str, message: str):
+        """Broadcast message to all connections of a specific user"""
+        if user_id in self.user_connections:
+            for connection in self.user_connections[user_id]:
+                try:
+                    await connection.send_text(message)
+                except Exception as e:
+                    logger.error(f"Error sending message to user {user_id}: {e}")
+                    self.disconnect(connection, user_id)
 
 
 manager = ConnectionManager()
@@ -89,6 +117,94 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Define the Kafka consumers before the startup event
+async def task_kafka_consumer():
+    """Run Kafka consumer for task events"""
+    # Use the centralized configuration for Kafka brokers
+    consumer = aiokafka.AIOKafkaConsumer(
+        'task-events',  # Using the correct topic name
+        bootstrap_servers=[KAFKA_BROKERS],
+        value_deserializer=lambda m: json.loads(m.decode('utf-8')),
+        group_id='websocket-group',
+        auto_offset_reset='earliest'  # Start from earliest message if no offset exists
+    )
+
+    await consumer.start()
+    logger.info("Started Kafka consumer for task events WebSocket service...")
+
+    try:
+        async for message in consumer:
+            task_event = message.value
+            logger.info(f"Received task event: {task_event}")
+
+            try:
+                # Broadcast the update to all connected clients
+                await manager.broadcast(json.dumps(task_event))
+            except Exception as e:
+                logger.error(f"Error broadcasting task event: {e}")
+    except Exception as e:
+        logger.error(f"Error in task event consumer: {e}")
+    finally:
+        await consumer.stop()
+
+async def notification_kafka_consumer():
+    """Run Kafka consumer for notifications"""
+    # Use the centralized configuration for Kafka brokers
+    consumer = aiokafka.AIOKafkaConsumer(
+        'notifications',  # Using the notifications topic
+        bootstrap_servers=[KAFKA_BROKERS],
+        value_deserializer=lambda m: json.loads(m.decode('utf-8')),
+        group_id='websocket-notification-group',
+        auto_offset_reset='earliest'  # Start from earliest message if no offset exists
+    )
+
+    await consumer.start()
+    logger.info("Started Kafka consumer for notification WebSocket service...")
+
+    try:
+        async for message in consumer:
+            notification = message.value
+            logger.info(f"Received notification: {notification}")
+
+            # Send notification to specific user if user_id is provided
+            user_id = notification.get('user_id')
+            if user_id:
+                try:
+                    await manager.send_to_user(user_id, json.dumps(notification))
+                except Exception as e:
+                    logger.error(f"Error sending notification to user {user_id}: {e}")
+            else:
+                # Broadcast to all if no specific user
+                try:
+                    await manager.broadcast(json.dumps(notification))
+                except Exception as e:
+                    logger.error(f"Error broadcasting notification: {e}")
+    except Exception as e:
+        logger.error(f"Error in notification consumer: {e}")
+    finally:
+        await consumer.stop()
+
+# Initialize app state to store background tasks
+@app.on_event("startup")
+async def startup_event():
+    """Initialize the application on startup"""
+    # Initialize app state to store background tasks
+    if not hasattr(app, 'state'):
+        app.state = type('State', (), {})()  # Create a simple state object
+
+    # Start Kafka consumers for task events and notifications in background tasks
+    import asyncio
+
+    # Create background tasks for the async Kafka consumers
+    task_consumer_task = asyncio.create_task(task_kafka_consumer())
+    notification_consumer_task = asyncio.create_task(notification_kafka_consumer())
+
+    # Store tasks in the app state so they continue running
+    app.state.task_consumer_task = task_consumer_task
+    app.state.notification_consumer_task = notification_consumer_task
+
+    logger.info("WebSocket service started successfully with async Kafka consumers")
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
@@ -108,95 +224,71 @@ async def websocket_endpoint(websocket: WebSocket):
     except WebSocketDisconnect:
         manager.disconnect(websocket, user_id)
 
-def kafka_consumer_thread():
-    """Run Kafka consumer in a separate thread"""
-    # Use environment variable for Kafka broker, default to internal Docker service name
-    kafka_broker = os.getenv("KAFKA_BROKER", "kafka:9092")
-
-    consumer = KafkaConsumer(
+async def task_kafka_consumer():
+    """Run Kafka consumer for task events"""
+    # Use the centralized configuration for Kafka brokers
+    consumer = aiokafka.AIOKafkaConsumer(
         'task-events',  # Using the correct topic name
-        bootstrap_servers=[kafka_broker],
+        bootstrap_servers=[KAFKA_BROKERS],
         value_deserializer=lambda m: json.loads(m.decode('utf-8')),
-        group_id='websocket-group'
+        group_id='websocket-group',
+        auto_offset_reset='earliest'  # Start from earliest message if no offset exists
     )
 
-    logger.info("Starting Kafka consumer for WebSocket service...")
+    await consumer.start()
+    logger.info("Started Kafka consumer for task events WebSocket service...")
 
-    for message in consumer:
-        task_event = message.value
-        logger.info(f"Received task event: {task_event}")
+    try:
+        async for message in consumer:
+            task_event = message.value
+            logger.info(f"Received task event: {task_event}")
 
-        # Create a new event loop for this thread
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        
-        try:
-            # Broadcast the update to all connected clients
-            loop.run_until_complete(manager.broadcast(json.dumps(task_event)))
-        except Exception as e:
-            logger.error(f"Error broadcasting task event: {e}")
-        finally:
-            loop.close()
+            try:
+                # Broadcast the update to all connected clients
+                await manager.broadcast(json.dumps(task_event))
+            except Exception as e:
+                logger.error(f"Error broadcasting task event: {e}")
+    except Exception as e:
+        logger.error(f"Error in task event consumer: {e}")
+    finally:
+        await consumer.stop()
 
-def notification_kafka_consumer_thread():
-    """Run Kafka consumer for notifications in a separate thread"""
-    # Use environment variable for Kafka broker, default to internal Docker service name
-    kafka_broker = os.getenv("KAFKA_BROKER", "kafka:9092")
-
-    consumer = KafkaConsumer(
+async def notification_kafka_consumer():
+    """Run Kafka consumer for notifications"""
+    # Use the centralized configuration for Kafka brokers
+    consumer = aiokafka.AIOKafkaConsumer(
         'notifications',  # Using the notifications topic
-        bootstrap_servers=[kafka_broker],
+        bootstrap_servers=[KAFKA_BROKERS],
         value_deserializer=lambda m: json.loads(m.decode('utf-8')),
-        group_id='websocket-notification-group'
+        group_id='websocket-notification-group',
+        auto_offset_reset='earliest'  # Start from earliest message if no offset exists
     )
 
-    logger.info("Starting Kafka consumer for notification WebSocket service...")
+    await consumer.start()
+    logger.info("Started Kafka consumer for notification WebSocket service...")
 
-    for message in consumer:
-        notification = message.value
-        logger.info(f"Received notification: {notification}")
+    try:
+        async for message in consumer:
+            notification = message.value
+            logger.info(f"Received notification: {notification}")
 
-        # Send notification to specific user if user_id is provided
-        user_id = notification.get('user_id')
-        if user_id:
-            # Create a new event loop for this thread
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            
-            try:
-                loop.run_until_complete(manager.send_to_user(user_id, json.dumps(notification)))
-            except Exception as e:
-                logger.error(f"Error sending notification to user {user_id}: {e}")
-            finally:
-                loop.close()
-        else:
-            # Broadcast to all if no specific user
-            # Create a new event loop for this thread
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            
-            try:
-                loop.run_until_complete(manager.broadcast(json.dumps(notification)))
-            except Exception as e:
-                logger.error(f"Error broadcasting notification: {e}")
-            finally:
-                loop.close()
-
-# Global variable to hold the event loop
-loop = None
-
-@app.on_event("startup")
-def startup_event():
-    global loop
-    loop = asyncio.get_event_loop()
-
-    # Start Kafka consumer for task events in a separate thread
-    task_consumer_thread = threading.Thread(target=kafka_consumer_thread, daemon=True)
-    task_consumer_thread.start()
-
-    # Start Kafka consumer for notifications in a separate thread
-    notification_consumer_thread = threading.Thread(target=notification_kafka_consumer_thread, daemon=True)
-    notification_consumer_thread.start()
+            # Send notification to specific user if user_id is provided
+            user_id = notification.get('user_id')
+            if user_id:
+                try:
+                    await manager.send_to_user(user_id, json.dumps(notification))
+                except Exception as e:
+                    logger.error(f"Error sending notification to user {user_id}: {e}")
+            else:
+                # Broadcast to all if no specific user
+                try:
+                    await manager.broadcast(json.dumps(notification))
+                except Exception as e:
+                    logger.error(f"Error broadcasting notification: {e}")
+    except Exception as e:
+        logger.error(f"Error in notification consumer: {e}")
+    finally:
+        await consumer.stop()
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8080)

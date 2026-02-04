@@ -18,6 +18,9 @@ interface TaskFormModalProps {
       due_date?: string;
       is_recurring?: boolean;
       recurrence_rule?: string;
+      reminder_type?: string;
+      reminder_offset?: number;
+      reminder_time?: string;
     },
     id?: string,
   ) => void;
@@ -31,6 +34,9 @@ interface TaskFormModalProps {
     due_date?: string;
     is_recurring?: boolean;
     recurrence_rule?: string;
+    reminder_type?: string;
+    reminder_offset?: number;
+    reminder_time?: string;
   };
 }
 
@@ -52,6 +58,10 @@ const TaskFormModal: React.FC<TaskFormModalProps> = ({
   const [endCondition, setEndCondition] = useState<"none" | "after" | "on">("none");
   const [endAfterCount, setEndAfterCount] = useState<number>(1);
   const [endDate, setEndDate] = useState<string>("");
+  const [hasReminder, setHasReminder] = useState(false);
+  const [reminderType, setReminderType] = useState<"before_due" | "specific_time">("before_due");
+  const [reminderOffset, setReminderOffset] = useState<number>(60); // Default to 60 minutes before due
+  const [reminderTime, setReminderTime] = useState<string>("");
 
   // Function to convert database date string to "YYYY-MM-DDTHH:mm"
   const formatForInput = (dateStr?: string) => {
@@ -119,6 +129,20 @@ const TaskFormModal: React.FC<TaskFormModalProps> = ({
       } else {
         setEndCondition("none");
       }
+
+      // Handle reminder settings if they exist in the initial data
+      if (initialData.reminder_type) {
+        setHasReminder(true);
+        if (initialData.reminder_type === "BEFORE_DUE") {
+          setReminderType("before_due");
+          setReminderOffset(initialData.reminder_offset || 60);
+        } else if (initialData.reminder_time) {
+          setReminderType("specific_time");
+          setReminderTime(formatForInput(initialData.reminder_time));
+        }
+      } else {
+        setHasReminder(false);
+      }
     } else if (!isOpen) {
       // Reset form on close
       setTitle("");
@@ -133,6 +157,10 @@ const TaskFormModal: React.FC<TaskFormModalProps> = ({
       setEndCondition("none");
       setEndAfterCount(1);
       setEndDate("");
+      setHasReminder(false);
+      setReminderType("before_due");
+      setReminderOffset(60);
+      setReminderTime("");
     }
   }, [initialData, isOpen]);
 
@@ -167,6 +195,27 @@ const TaskFormModal: React.FC<TaskFormModalProps> = ({
       }
     }
 
+    // Prepare reminder data
+    let reminderData: {
+      reminder_type?: string;
+      reminder_offset?: number;
+      reminder_time?: string;
+    } = {};
+
+    if (hasReminder) {
+      if (reminderType === "before_due") {
+        reminderData = {
+          reminder_type: "BEFORE_DUE",
+          reminder_offset: reminderOffset,
+        };
+      } else if (reminderType === "specific_time" && reminderTime) {
+        reminderData = {
+          reminder_type: "SPECIFIC_TIME",
+          reminder_time: reminderTime,
+        };
+      }
+    }
+
     onSubmit(
       {
         title,
@@ -177,6 +226,8 @@ const TaskFormModal: React.FC<TaskFormModalProps> = ({
         due_date: dueDate || undefined,
         is_recurring: isRecurring,
         recurrence_rule: isRecurring && finalRecurrenceRule ? finalRecurrenceRule : undefined,
+        // Add reminder data
+        ...reminderData,
       },
       initialData?.id,
     );
@@ -427,6 +478,87 @@ const TaskFormModal: React.FC<TaskFormModalProps> = ({
                             </div>
                           )}
                         </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Reminder Section */}
+                <div className="p-4 bg-slate-800/30 border border-slate-700/50 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-indigo-400">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                      </svg>
+                      <span className="text-sm font-medium text-slate-300">
+                        Task Reminder
+                      </span>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={hasReminder}
+                      onChange={(e) => setHasReminder(e.target.checked)}
+                      className="w-5 h-5 accent-indigo-600"
+                    />
+                  </div>
+
+                  {hasReminder && (
+                    <div className="mt-4 space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <label className="text-xs font-medium text-slate-400 ml-1">
+                            Reminder Type
+                          </label>
+                          <select
+                            value={reminderType}
+                            onChange={(e) => setReminderType(e.target.value as "before_due" | "specific_time")}
+                            className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700/50 rounded-lg text-white text-sm focus:border-indigo-500/50 outline-none"
+                          >
+                            <option value="before_due">Before Due Date</option>
+                            <option value="specific_time">Specific Time</option>
+                          </select>
+                        </div>
+
+                        {reminderType === "before_due" ? (
+                          <div className="space-y-2">
+                            <label className="text-xs font-medium text-slate-400 ml-1">
+                              Reminder Offset (minutes)
+                            </label>
+                            <input
+                              type="number"
+                              min="1"
+                              value={reminderOffset}
+                              onChange={(e) => setReminderOffset(parseInt(e.target.value) || 1)}
+                              className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700/50 rounded-lg text-white text-sm focus:border-indigo-500/50 outline-none"
+                              placeholder="Minutes before due date"
+                            />
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            <label className="text-xs font-medium text-slate-400 ml-1">
+                              Reminder Time
+                            </label>
+                            <div className="relative">
+                              <Calendar
+                                size={14}
+                                className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"
+                              />
+                              <input
+                                type="datetime-local"
+                                value={reminderTime}
+                                onChange={(e) => setReminderTime(e.target.value)}
+                                className="w-full pl-11 pr-4 py-3 bg-slate-800/50 border border-slate-700/50 rounded-lg text-white text-sm focus:border-indigo-500/50 outline-none [color-scheme:dark]"
+                              />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="text-xs text-slate-500 p-3 bg-slate-800/30 rounded-lg">
+                        {reminderType === "before_due"
+                          ? `A reminder will be sent ${reminderOffset} minutes before the due date.`
+                          : `A reminder will be sent at the specified time.`}
                       </div>
                     </div>
                   )}

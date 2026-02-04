@@ -8,14 +8,26 @@ task completion events to generate the next instance of recurring tasks.
 
 import json
 import logging
+import sys
+import os
+
+# Add the project root and backend directory to the Python path to resolve imports
+current_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(current_dir)  # Go up one level to project root
+backend_dir = os.path.join(project_root, 'backend')
+
+sys.path.insert(0, project_root)
+sys.path.insert(0, backend_dir)
+
+# Import configuration
+from backend.config import KAFKA_BROKERS
+
 from kafka import KafkaConsumer
 from sqlmodel import create_engine, Session
-from backend.models import Task, User
+from backend.models import Task, User  # Use absolute import from backend
 from datetime import datetime
-from utils.recurrence_utils import calculate_next_occurrence, validate_recurrence_end_condition
-import os
+from backend.utils.recurrence_utils import calculate_next_occurrence, validate_recurrence_end_condition  # Use absolute import from backend
 import signal
-import sys
 from typing import Optional
 
 
@@ -28,21 +40,22 @@ logger = logging.getLogger(__name__)
 
 
 class RecurringTaskConsumer:
-    def __init__(self, kafka_bootstrap_servers: str = "localhost:9092", db_url: str = None):
+    def __init__(self, kafka_bootstrap_servers: str = None, db_url: str = None):
         """
         Initialize the recurring task consumer.
-        
+
         Args:
             kafka_bootstrap_servers: Kafka broker addresses
             db_url: Database connection URL
         """
         self.running = True
-        self.kafka_bootstrap_servers = kafka_bootstrap_servers
+        # Use the centralized configuration for Kafka brokers if not provided
+        self.kafka_bootstrap_servers = kafka_bootstrap_servers or KAFKA_BROKERS
         self.db_url = db_url or os.getenv("DATABASE_URL", "postgresql://user:password@localhost/dbname")
-        
+
         # Create database engine
         self.engine = create_engine(self.db_url)
-        
+
         # Initialize Kafka consumer
         self.consumer = KafkaConsumer(
             'task-events',
@@ -205,11 +218,10 @@ def main():
     Main function to run the recurring task consumer.
     """
     # Get configuration from environment variables or use defaults
-    kafka_servers = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
     db_url = os.getenv("DATABASE_URL", "postgresql://user:password@localhost/dbname")
-    
+
     # Create and run the consumer
-    consumer = RecurringTaskConsumer(kafka_bootstrap_servers=kafka_servers, db_url=db_url)
+    consumer = RecurringTaskConsumer(db_url=db_url)  # Will use KAFKA_BROKERS from config
     consumer.run()
 
 

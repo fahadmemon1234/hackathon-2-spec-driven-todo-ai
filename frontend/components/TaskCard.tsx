@@ -27,6 +27,9 @@ interface TaskCardProps {
   due_date?: string;
   is_recurring?: boolean;
   recurrence_rule?: string;
+  reminder_type?: string;
+  reminder_offset?: number;
+  reminder_time?: string;
   createdAt: string;
   onToggle: (id: string) => void;
   onEdit: (task: any) => void;
@@ -44,6 +47,9 @@ const TaskCard: React.FC<TaskCardProps> = ({
   due_date,
   is_recurring,
   recurrence_rule,
+  reminder_type,
+  reminder_offset,
+  reminder_time,
   createdAt,
   onToggle,
   onEdit,
@@ -190,6 +196,17 @@ const TaskCard: React.FC<TaskCardProps> = ({
                 Due: {formatDate(due_date)}
               </div>
             )}
+
+            {reminder_type && (
+              <div
+                className={`flex items-center gap-1.5 text-[10px] font-medium ${completed ? "text-slate-600" : "text-orange-500"}`}
+              >
+                <Clock size={12} className="text-current" />
+                {reminder_type === "BEFORE_DUE"
+                  ? `Remind: ${reminder_offset || 60}min before`
+                  : "Remind: At time"}
+              </div>
+            )}
           </div>
 
           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
@@ -207,6 +224,9 @@ const TaskCard: React.FC<TaskCardProps> = ({
                   due_date,
                   is_recurring,
                   recurrence_rule,
+                  reminder_type,
+                  reminder_offset,
+                  reminder_time,
                 })
               }
               className="h-8 w-8 text-slate-500 hover:text-indigo-400 hover:bg-indigo-500/10 rounded-md transition-colors"

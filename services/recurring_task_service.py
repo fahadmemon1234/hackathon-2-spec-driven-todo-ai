@@ -1,6 +1,19 @@
+import sys
+import os
+
+# Add the project root and backend directory to the Python path to resolve imports
+current_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(current_dir)  # Go up one level to project root
+backend_dir = os.path.join(project_root, 'backend')
+
+sys.path.insert(0, project_root)
+sys.path.insert(0, backend_dir)
+
+# Import configuration
+from backend.config import KAFKA_BROKERS
+
 from kafka import KafkaConsumer
 import json
-import os
 import time
 import logging
 from datetime import datetime
@@ -13,7 +26,7 @@ logger = logging.getLogger(__name__)
 
 class RecurringTaskService:
     def __init__(self):
-        self.kafka_broker = os.getenv('KAFKA_BROKER', 'localhost:9092')
+        self.kafka_broker = KAFKA_BROKERS
         self.consumer = KafkaConsumer(
             'task-events',
             bootstrap_servers=[self.kafka_broker],
